@@ -190,7 +190,7 @@ class Daemon:
         if not self.cfg["client_id"]:
             _log("client_id belum diisi di", cc_konfig.jalur_konfig())
             _log("Buat aplikasi di https://discord.com/developers/applications,")
-            _log('namai "Claude Code", lalu salin Application ID-nya ke situ.')
+            _log('namai mis. "Terminal", lalu salin Application ID-nya ke situ.')
             return 2
 
         signal.signal(signal.SIGTERM, self.berhenti)

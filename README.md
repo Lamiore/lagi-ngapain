@@ -87,6 +87,10 @@ Kalau itu tidak diinginkan:
 Atau tutup pemutar tertentu saja lewat `abaikan_pemutar` di konfig, mis.
 `["brave", "firefox"]` — Spotify tetap terbaca, browser tidak.
 
+Kebalikannya juga berguna: Spotify desktop yang sudah disambungkan ke Discord
+punya presence sendiri, jadi `["spotify"]` membuat lagunya tidak tampil dobel
+di profil — lagu dari browser tetap terbaca.
+
 ### Sampul album
 
 Sampul album jadi gambar besar presence — **di kartu musik maupun saat lagi
