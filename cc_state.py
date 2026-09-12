@@ -50,6 +50,15 @@ LABEL_BAWAAN = {
 # Batas panjang field Discord.
 BATAS_FIELD = 128
 
+# Jenis activity -- ini yang menentukan kata di pojok atas presence
+# ("Playing X", "Listening to X", ...). Diuji langsung ke Discord: nilai
+# 0/2/3/5 dihormati dan dikembalikan apa adanya, sedangkan 1 (Streaming)
+# ditolak diam-diam karena menuntut URL Twitch/YouTube yang sah, dan 4
+# (Custom Status) memang tidak tersedia lewat RPC.
+TIPE_VALID = {0: "Playing", 2: "Listening to", 3: "Watching", 5: "Competing in"}
+TIPE_KERJA = 0
+TIPE_MUSIK = 2
+
 
 def label_alat(nama: str, peta: dict | None = None) -> str:
     peta = {**LABEL_BAWAAN, **(peta or {})}
@@ -96,11 +105,17 @@ class Registry:
     proyek_privat: tuple = ()
     tampilkan_timer: bool = True
     label: dict = field(default_factory=dict)
+    tipe_kerja: int = TIPE_KERJA
+    tipe_musik: int = TIPE_MUSIK
     sesi: dict = field(default_factory=dict)
     _hitung: int = 0
 
     def __post_init__(self) -> None:
         self.proyek_privat = tuple(str(p).strip().lower() for p in self.proyek_privat if str(p).strip())
+        if self.tipe_kerja not in TIPE_VALID:
+            self.tipe_kerja = TIPE_KERJA
+        if self.tipe_musik not in TIPE_VALID:
+            self.tipe_musik = TIPE_MUSIK
 
     # -- pemasukan peristiwa ------------------------------------------------
 
@@ -162,11 +177,15 @@ class Registry:
         if self.mode == "minimal":
             # Judul lagu sama personalnya dengan nama proyek; mode minimal
             # menjanjikan tidak membocorkan keduanya.
-            return {"details": _potong(peta["dengerin"])}
+            return {"type": self.tipe_musik, "details": _potong(peta["dengerin"])}
         judul = musik.get("judul", "")
         artis = musik.get("artis", "")
         teks = f"{artis} \u2014 {judul}" if artis else judul
-        return {"details": _potong(f"\u266a {teks}"), "state": _potong(peta["dengerin"])}
+        return {
+            "type": self.tipe_musik,
+            "details": _potong(f"\u266a {teks}"),
+            "state": _potong(peta["dengerin"]),
+        }
 
     def rakit(self, sekarang: float, musik: dict | None = None) -> dict | None:
         """Rakit payload activity Discord. ``None`` berarti kosongkan presence.
@@ -206,7 +225,11 @@ class Registry:
         if jumlah > 1:
             state += f" · {jumlah} sesi aktif"
 
-        activity: dict = {"details": _potong(details), "state": _potong(state)}
+        activity: dict = {
+            "type": self.tipe_kerja,
+            "details": _potong(details),
+            "state": _potong(state),
+        }
         if self.tampilkan_timer:
             # Timer dihitung dari sesi tertua yang masih hidup supaya angkanya
             # tidak melompat mundur saat sesi lain ikut bergabung.

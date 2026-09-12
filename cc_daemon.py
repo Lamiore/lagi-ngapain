@@ -57,6 +57,8 @@ class Daemon:
             proyek_privat=cfg["proyek_privat"],
             tampilkan_timer=cfg["tampilkan_timer"],
             label=cfg["label"],
+            tipe_kerja=cfg["tipe_kerja"],
+            tipe_musik=cfg["tipe_musik"],
         )
         self.klien = KlienDiscord(cfg["client_id"])
         # Dibaca berkala, bukan tiap denyut: satu pembacaan memanggil
@@ -148,7 +150,9 @@ class Daemon:
         if activity is None:
             _log("presence dikosongkan")
         else:
-            _log("presence:", activity.get("details"), "|", activity.get("state"))
+            from cc_state import TIPE_VALID
+            _log("presence:", TIPE_VALID.get(activity.get("type"), "?"), "|",
+                 activity.get("details"), "|", activity.get("state"))
 
     # -- daur hidup ---------------------------------------------------------
 

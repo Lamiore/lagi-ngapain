@@ -68,6 +68,20 @@ class UjiKonfig(unittest.TestCase):
         self.tulis({"label": {"Bash": "oke", "Read": 123, "Edit": None}})
         self.assertEqual(ck.muat(self.jalur)["label"], {"Bash": "oke"})
 
+    def test_tipe_ngawur_jatuh_ke_bawaan(self):
+        self.tulis({"tipe_kerja": 99, "tipe_musik": 1})
+        cfg = ck.muat(self.jalur)
+        self.assertEqual(cfg["tipe_kerja"], 0)
+        self.assertEqual(cfg["tipe_musik"], 2)
+
+    def test_tipe_berupa_teks_angka_tetap_diterima(self):
+        self.tulis({"tipe_kerja": "3"})
+        self.assertEqual(ck.muat(self.jalur)["tipe_kerja"], 3)
+
+    def test_tipe_bukan_angka_jatuh_ke_bawaan(self):
+        self.tulis({"tipe_kerja": "playing"})
+        self.assertEqual(ck.muat(self.jalur)["tipe_kerja"], 0)
+
     def test_simpan_lalu_muat_pulang_pergi(self):
         cfg = ck.muat(self.jalur)
         cfg["client_id"] = "987"

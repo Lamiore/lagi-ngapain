@@ -72,6 +72,23 @@ Kalau itu tidak diinginkan:
 Atau tutup pemutar tertentu saja lewat `abaikan_pemutar` di konfig, mis.
 `["brave", "firefox"]` — Spotify tetap terbaca, browser tidak.
 
+### Kata di pojok atas
+
+Baris teratas presence adalah `<jenis> <nama aplikasi>`, dan dua-duanya bisa
+diatur. Nama aplikasi diganti di Developer Portal (Application ID tidak
+berubah); jenisnya lewat konfig:
+
+| nilai | tampil |
+|---|---|
+| `0` | Playing *(bawaan saat ngoding)* |
+| `2` | Listening to *(bawaan saat dengerin)* |
+| `3` | Watching |
+| `5` | Competing in |
+
+`1` (Streaming) sengaja ditolak: diuji langsung ke Discord, nilainya diterima
+tapi tidak dikembalikan — dia menuntut URL Twitch/YouTube yang sah. Jatuh ke
+bawaan lebih baik daripada diam-diam kehilangan jenisnya.
+
 ## Privasi
 
 Rich Presence terbaca oleh **seluruh daftar teman**. Bawaannya karena itu
@@ -143,6 +160,8 @@ Konfigurasi: `~/.config/cc-presence/konfig.json`
 | `musik` | `true` | tampilkan lagu saat tidak ada yang dikerjakan |
 | `abaikan_pemutar` | `[]` | awalan nama pemutar yang tidak boleh dibaca |
 | `label` | `{}` | timpaan teks kegiatan, mis. `{"Bash": "Ngetik perintah"}` |
+| `tipe_kerja` | `0` | kata pojok atas saat ngoding (lihat di bawah) |
+| `tipe_musik` | `2` | kata pojok atas saat dengerin |
 
 `jeda_publish` tidak bisa turun di bawah 15 detik — Discord membatasi laju
 `SET_ACTIVITY` (~5 per 20 detik), dan tool call beruntun akan menjebolnya.
@@ -165,7 +184,7 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 python3 uji_semua.py
 ```
 
-130 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
+139 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
 palsu yang bicara protokol yang sama, dan bagian MPRIS-nya lewat jawaban
 `busctl` palsu.
 

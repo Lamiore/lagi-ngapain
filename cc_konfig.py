@@ -37,6 +37,10 @@ BAWAAN: dict = {
     # tidak sempat jalan).
     "ttl_sesi": 900,
     "tampilkan_timer": True,
+    # Kata di pojok atas presence: 0 Playing, 2 Listening to, 3 Watching,
+    # 5 Competing in. Nilai lain ditolak Discord, jadi disaring di sini.
+    "tipe_kerja": 0,
+    "tipe_musik": 2,
     # Tampilkan lagu yang sedang diputar saat tidak ada yang dikerjakan.
     "musik": True,
     # Awalan nama pemutar yang tidak boleh dibaca sama sekali, mis.
@@ -68,6 +72,14 @@ def muat(jalur: Path | None = None) -> dict:
         cfg["mode"] = BAWAAN["mode"]
     if not isinstance(cfg["proyek_privat"], list):
         cfg["proyek_privat"] = []
+    from cc_state import TIPE_KERJA, TIPE_MUSIK, TIPE_VALID
+    for kunci, bawaan in (("tipe_kerja", TIPE_KERJA), ("tipe_musik", TIPE_MUSIK)):
+        try:
+            cfg[kunci] = int(cfg[kunci])
+        except (TypeError, ValueError):
+            cfg[kunci] = bawaan
+        if cfg[kunci] not in TIPE_VALID:
+            cfg[kunci] = bawaan
     if not isinstance(cfg["abaikan_pemutar"], list):
         cfg["abaikan_pemutar"] = []
     if not isinstance(cfg["label"], dict):

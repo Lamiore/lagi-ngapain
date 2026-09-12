@@ -202,6 +202,41 @@ class UjiKartuMusik(unittest.TestCase):
         self.assertLessEqual(len(hasil["details"]), cs.BATAS_FIELD)
 
 
+class UjiTipeActivity(unittest.TestCase):
+    """Kata di pojok atas presence ("Playing X" / "Listening to X")."""
+
+    LAGU = {"judul": "Too Soon", "artis": "NIKI", "pemutar": "brave"}
+
+    def test_kartu_kerja_bawaannya_playing(self):
+        r = cs.Registry()
+        r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), 10.0)
+        self.assertEqual(r.rakit(10.0)["type"], cs.TIPE_KERJA)
+
+    def test_kartu_musik_bawaannya_listening(self):
+        self.assertEqual(cs.Registry().rakit(10.0, self.LAGU)["type"], cs.TIPE_MUSIK)
+
+    def test_kartu_musik_mode_minimal_tetap_bertipe(self):
+        r = cs.Registry(mode="minimal")
+        self.assertEqual(r.rakit(10.0, self.LAGU)["type"], cs.TIPE_MUSIK)
+
+    def test_tipe_bisa_diatur(self):
+        r = cs.Registry(tipe_kerja=3, tipe_musik=5)
+        r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), 10.0)
+        self.assertEqual(r.rakit(10.0)["type"], 3)
+        r.terapkan(ev("a", "Stop"), 11.0)
+        self.assertEqual(r.rakit(11.0, self.LAGU)["type"], 5)
+
+    def test_streaming_ditolak_karena_discord_membuangnya(self):
+        # Diukur langsung: type=1 diterima tapi tidak dikembalikan Discord --
+        # dia menuntut URL Twitch/YouTube yang sah. Lebih baik jatuh ke bawaan
+        # daripada diam-diam kehilangan tipenya.
+        self.assertEqual(cs.Registry(tipe_kerja=1).tipe_kerja, cs.TIPE_KERJA)
+
+    def test_tipe_ngawur_jatuh_ke_bawaan(self):
+        self.assertEqual(cs.Registry(tipe_kerja=99).tipe_kerja, cs.TIPE_KERJA)
+        self.assertEqual(cs.Registry(tipe_musik=4).tipe_musik, cs.TIPE_MUSIK)
+
+
 class UjiPrivasi(unittest.TestCase):
     def test_normal_hanya_nama_folder_bukan_jalur(self):
         r = cs.Registry(mode="normal")
