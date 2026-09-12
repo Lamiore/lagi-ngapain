@@ -1,4 +1,4 @@
-"""Pemasangan dan pencabutan hook cc-presence di settings.json Claude Code.
+"""Pemasangan dan pencabutan hook lagi-ngapain di settings.json Claude Code.
 
 Bagian ini dipisah supaya bisa diuji: menyunting ``~/.claude/settings.json``
 yang sudah memuat hook lain (rtk, context-mode, plugin) adalah bagian paling
@@ -17,7 +17,7 @@ from cc_state import PERISTIWA
 
 # Penanda yang membedakan hook kita dari milik alat lain. Pencabutan
 # mencocokkan substring ini, jadi jangan diubah tanpa alasan.
-PENANDA = "cc-presence-hook.sh"
+PENANDA = "lagi-ngapain-hook.sh"
 
 
 def jalur_settings() -> Path:
@@ -49,7 +49,7 @@ def pasang(perintah: str, jalur: Path | None = None, cadangkan: bool = True) -> 
     jalur = jalur or jalur_settings()
     data = _muat(jalur)
     if cadangkan and jalur.exists():
-        shutil.copy2(jalur, jalur.with_suffix(".json.sebelum-cc-presence"))
+        shutil.copy2(jalur, jalur.with_suffix(".json.sebelum-lagi-ngapain"))
 
     hooks = data.setdefault("hooks", {})
     if not isinstance(hooks, dict):
@@ -72,7 +72,7 @@ def pasang(perintah: str, jalur: Path | None = None, cadangkan: bool = True) -> 
 
 
 def copot(jalur: Path | None = None) -> tuple[bool, str]:
-    """Cabut hanya entri milik cc-presence; entri lain tidak disentuh."""
+    """Cabut hanya entri milik lagi-ngapain; entri lain tidak disentuh."""
     jalur = jalur or jalur_settings()
     if not jalur.exists():
         return True, "settings.json tidak ada, tidak ada yang dicabut"
@@ -98,7 +98,7 @@ def copot(jalur: Path | None = None) -> tuple[bool, str]:
         dicabut.append(ev)
 
     if not dicabut:
-        return True, "hook cc-presence tidak ditemukan, tidak ada yang diubah"
+        return True, "hook lagi-ngapain tidak ditemukan, tidak ada yang diubah"
     _tulis(jalur, data)
     return True, "hook dicabut dari: " + ", ".join(dicabut)
 

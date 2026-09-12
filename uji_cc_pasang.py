@@ -13,7 +13,7 @@ from pathlib import Path
 import cc_pasang as cp
 from cc_state import PERISTIWA
 
-PERINTAH = "/home/ram/.claude/hooks/cc-presence-hook.sh"
+PERINTAH = "/home/ram/.claude/hooks/lagi-ngapain-hook.sh"
 
 # Bentuk nyata: rtk memakai matcher Bash, context-mode memakai entri tanpa
 # matcher, dan ada entri kosong bawaan yang tidak boleh ikut terhapus.
@@ -100,13 +100,13 @@ class UjiPasang(Dasar):
         ok, _ = cp.pasang(PERINTAH, self.jalur)
         self.assertTrue(ok)
         # Cadangannya tetap memuat berkas asli yang rusak, jadi tidak hilang.
-        cadangan = self.jalur.with_suffix(".json.sebelum-cc-presence")
+        cadangan = self.jalur.with_suffix(".json.sebelum-lagi-ngapain")
         self.assertEqual(cadangan.read_text(encoding="utf-8"), "{rusak")
 
     def test_cadangan_dibuat(self):
         self.tulis(NYATA)
         cp.pasang(PERINTAH, self.jalur)
-        cadangan = self.jalur.with_suffix(".json.sebelum-cc-presence")
+        cadangan = self.jalur.with_suffix(".json.sebelum-lagi-ngapain")
         self.assertTrue(cadangan.exists())
         self.assertEqual(json.loads(cadangan.read_text(encoding="utf-8")), NYATA)
 

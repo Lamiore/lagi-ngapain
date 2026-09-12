@@ -13,12 +13,12 @@ palsunya proses terpisah yang bisa di-kill sungguhan.
 """
 import json, os, signal, subprocess, sys, tempfile, threading, time
 from pathlib import Path
-DIR = "/home/ram/workspace/projects/cc-presence"
 SP = os.path.dirname(os.path.abspath(__file__))
+DIR = os.path.dirname(SP)
 
 tmp = tempfile.mkdtemp()
 runtime = Path(tmp, "run"); runtime.mkdir()
-conf = Path(tmp, "conf", "cc-presence"); conf.mkdir(parents=True)
+conf = Path(tmp, "conf", "lagi-ngapain"); conf.mkdir(parents=True)
 (conf / "konfig.json").write_text(json.dumps({"client_id": "123456789", "musik": False}))
 soket = str(runtime / "discord-ipc-0")
 
@@ -34,7 +34,7 @@ baris = []
 threading.Thread(target=lambda: [baris.append(l.rstrip()) or print("   ", l.rstrip(), flush=True)
                                  for l in d.stdout], daemon=True).start()
 time.sleep(2)
-(runtime / "cc-presence" / "ev" / "1.json").write_text(json.dumps({
+(runtime / "lagi-ngapain" / "ev" / "1.json").write_text(json.dumps({
     "session_id": "a", "hook_event_name": "PreToolUse",
     "cwd": "/home/ram/workspace/projects/uji", "tool_name": "Bash"}))
 time.sleep(4)

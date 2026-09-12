@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Pemasang cc-presence: hook Claude Code + service systemd pengguna.
+# Pemasang lagi-ngapain: hook Claude Code + service systemd pengguna.
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-HOOK="$DIR/hooks/cc-presence-hook.sh"
-UNIT="cc-presence.service"
+HOOK="$DIR/hooks/lagi-ngapain-hook.sh"
+UNIT="lagi-ngapain.service"
 
 say() { printf '  %s\n' "$*"; }
 
@@ -20,8 +20,9 @@ if [ -z "$CID" ]; then
   echo
   say "Application ID Discord belum ada. Bikin dulu:"
   say "  1. buka https://discord.com/developers/applications"
-  say "  2. New Application, namai persis: Claude Code"
-  say "     (nama aplikasi ini jadi baris paling atas di presence)"
+  say "  2. New Application, namai mis.: Terminal"
+  say "     (nama aplikasi ini jadi baris paling atas di presence;"
+  say "      \"Claude Code\" ditolak Discord karena nama merek)"
   say "  3. salin Application ID di halaman General Information"
   echo
   read -rp "  Tempel Application ID di sini: " CID
@@ -51,7 +52,9 @@ PY
 
 echo "==> Service systemd"
 mkdir -p ~/.config/systemd/user
-cp "$DIR/systemd/$UNIT" ~/.config/systemd/user/
+# ExecStart di berkas unit cuma jalur contoh; yang dipasang menunjuk ke folder
+# tempat repo ini benar-benar di-clone.
+sed "s|^ExecStart=.*|ExecStart=$DIR/cc_daemon.py|" "$DIR/systemd/$UNIT" > ~/.config/systemd/user/"$UNIT"
 systemctl --user daemon-reload
 systemctl --user enable --now "$UNIT"
 say "$(systemctl --user is-active "$UNIT") -- log: journalctl --user -u $UNIT -f"

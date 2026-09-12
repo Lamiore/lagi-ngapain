@@ -1,7 +1,7 @@
-"""Konfigurasi cc-presence.
+"""Konfigurasi lagi-ngapain.
 
 Menyimpan Application ID Discord dan tingkat privasi. Berkasnya di
-``$XDG_CONFIG_HOME/cc-presence/konfig.json`` (bawaan ``~/.config``).
+``$XDG_CONFIG_HOME/lagi-ngapain/konfig.json`` (bawaan ``~/.config``).
 
 Tingkat privasi (``mode``) sengaja bawaannya kasar: Rich Presence terbaca
 oleh seluruh daftar teman, jadi jalur berkas dan isi perintah tidak pernah
@@ -22,8 +22,8 @@ MODE_VALID = ("minimal", "normal", "detail")
 
 BAWAAN: dict = {
     # Application ID dari https://discord.com/developers/applications
-    # Nama aplikasinya jadi baris paling atas di presence, jadi namai
-    # aplikasinya "Claude Code".
+    # Nama aplikasinya jadi baris paling atas di presence. "Claude Code"
+    # ditolak Discord (nama merek), jadi pakai nama lain, mis. "Terminal".
     "client_id": "",
     "mode": "normal",
     # Proyek yang namanya tidak boleh tampil walau mode >= normal.
@@ -52,7 +52,7 @@ BAWAAN: dict = {
     "sampul": True,
     # Pasang sampulnya juga di kartu kerja, bukan cuma saat nganggur. Slot
     # gambar itu yang biasanya diisi ikon aplikasi, jadi mematikan ini
-    # berarti ikon Claude Code tetap terlihat selagi ngoding.
+    # berarti ikon aplikasinya tetap terlihat selagi ngoding.
     "sampul_saat_kerja": True,
     # Awalan nama pemutar yang tidak boleh dibaca sama sekali, mis.
     # ["brave", "firefox"] untuk menutup judul video dari browser.
@@ -65,7 +65,7 @@ BAWAAN: dict = {
 
 def jalur_konfig() -> Path:
     dasar = os.environ.get("XDG_CONFIG_HOME") or str(Path.home() / ".config")
-    return Path(dasar) / "cc-presence" / "konfig.json"
+    return Path(dasar) / "lagi-ngapain" / "konfig.json"
 
 
 def muat(jalur: Path | None = None) -> dict:

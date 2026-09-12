@@ -245,22 +245,22 @@ class UjiJalurSinggahan(unittest.TestCase):
         return mock.patch.dict(os.environ, bersih, clear=True)
 
     def test_cache_directory_dari_systemd_dipakai(self):
-        with self._lingkungan(CACHE_DIRECTORY="/home/x/.cache/cc-presence"):
+        with self._lingkungan(CACHE_DIRECTORY="/home/x/.cache/lagi-ngapain"):
             self.assertEqual(cs.jalur_singgahan(),
-                             Path("/home/x/.cache/cc-presence/sampul.json"))
+                             Path("/home/x/.cache/lagi-ngapain/sampul.json"))
 
     def test_cache_directory_majemuk_ambil_yang_pertama(self):
         # systemd memisahkan beberapa direktori dengan titik dua.
-        with self._lingkungan(CACHE_DIRECTORY="/satu/cc-presence:/dua/lain"):
-            self.assertEqual(cs.jalur_singgahan(), Path("/satu/cc-presence/sampul.json"))
+        with self._lingkungan(CACHE_DIRECTORY="/satu/lagi-ngapain:/dua/lain"):
+            self.assertEqual(cs.jalur_singgahan(), Path("/satu/lagi-ngapain/sampul.json"))
 
     def test_cache_directory_kosong_diabaikan(self):
         with self._lingkungan(CACHE_DIRECTORY="", XDG_CACHE_HOME="/tmp/c"):
-            self.assertEqual(cs.jalur_singgahan(), Path("/tmp/c/cc-presence/sampul.json"))
+            self.assertEqual(cs.jalur_singgahan(), Path("/tmp/c/lagi-ngapain/sampul.json"))
 
     def test_tanpa_systemd_jatuh_ke_xdg(self):
         with self._lingkungan(XDG_CACHE_HOME="/tmp/c"):
-            self.assertEqual(cs.jalur_singgahan(), Path("/tmp/c/cc-presence/sampul.json"))
+            self.assertEqual(cs.jalur_singgahan(), Path("/tmp/c/lagi-ngapain/sampul.json"))
 
 
 if __name__ == "__main__":

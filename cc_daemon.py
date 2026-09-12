@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daemon cc-presence: menyalakan Discord Rich Presence untuk Claude Code.
+"""Daemon lagi-ngapain: menyalakan Discord Rich Presence untuk Claude Code.
 
 Hook Claude Code berumur sangat pendek -- prosesnya mati begitu selesai,
 dan Rich Presence ikut hilang saat soketnya tertutup. Jadi hook hanya
@@ -42,7 +42,7 @@ BELUM_PERNAH = object()
 
 def dir_spool() -> Path:
     dasar = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-    return Path(dasar) / "cc-presence" / "ev"
+    return Path(dasar) / "lagi-ngapain" / "ev"
 
 
 def _log(*a) -> None:
@@ -239,7 +239,7 @@ def main(argv=None) -> int:
         # berlaku setelah dimuat ulang. Dilakukan di sini supaya "tombol
         # panik" benar-benar satu perintah.
         import subprocess
-        hasil = subprocess.run(["systemctl", "--user", "restart", "cc-presence.service"],
+        hasil = subprocess.run(["systemctl", "--user", "restart", "lagi-ngapain.service"],
                                capture_output=True, text=True)
         print("service:", "dimuat ulang" if hasil.returncode == 0 else "belum jalan, tidak dimuat ulang")
         return 0

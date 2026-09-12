@@ -29,7 +29,7 @@ BATAS_SINGGAHAN = 200
 # Galat tidak boleh disinggahi permanen, tapi juga tidak boleh diulang tiap
 # denyut -- ini jarak minimum sebelum lagu yang sama dicoba lagi.
 MASA_TENANG = 60.0
-_UA = "cc-presence (+https://github.com/Lamiore)"
+_UA = "lagi-ngapain (+https://github.com/Lamiore/lagi-ngapain)"
 
 
 def jalur_singgahan() -> Path:
@@ -46,7 +46,7 @@ def jalur_singgahan() -> Path:
     if dari_systemd:
         return Path(dari_systemd) / "sampul.json"
     dasar = os.environ.get("XDG_CACHE_HOME") or str(Path.home() / ".cache")
-    return Path(dasar) / "cc-presence" / "sampul.json"
+    return Path(dasar) / "lagi-ngapain" / "sampul.json"
 
 
 def dari_art_url(art_url) -> str:

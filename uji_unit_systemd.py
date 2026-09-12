@@ -9,7 +9,7 @@ import configparser
 import unittest
 from pathlib import Path
 
-UNIT = Path(__file__).parent / "systemd" / "cc-presence.service"
+UNIT = Path(__file__).parent / "systemd" / "lagi-ngapain.service"
 
 
 class UjiUnit(unittest.TestCase):
@@ -41,7 +41,7 @@ class UjiUnit(unittest.TestCase):
         # dan cc_sampul menelan galat tulisnya (singgahan itu kenyamanan,
         # bukan syarat). Tanpa baris ini singgahannya gagal ditulis diam-diam
         # tiap lagu baru, dan iTunes ditanya ulang tiap daemon dinyalakan.
-        self.assertEqual(self.cfg["Service"]["CacheDirectory"], "cc-presence")
+        self.assertEqual(self.cfg["Service"]["CacheDirectory"], "lagi-ngapain")
 
     def test_ada_jeda_restart_supaya_tidak_kebut(self):
         self.assertGreaterEqual(int(self.cfg["Service"]["RestartSec"]), 5)

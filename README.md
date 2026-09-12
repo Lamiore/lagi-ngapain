@@ -1,12 +1,15 @@
-# cc-presence
+# lagi-ngapain
 
-Discord Rich Presence untuk **Claude Code CLI** di Linux.
+Discord Rich Presence di Linux: lagi ngoding apa di **Claude Code CLI**, dan
+lagi dengerin lagu apa.
 
 Menampilkan proyek yang sedang dikerjakan, apa yang sedang dilakukan, berapa
-sesi yang aktif, dan sudah berapa lama — langsung di profil Discord.
+sesi yang aktif, dan sudah berapa lama — langsung di profil Discord. Saat
+tidak ada yang dikerjakan, gantian lagu yang sedang diputar beserta sampul
+albumnya.
 
 ```
-Claude Code
+Terminal
 📁 aio-lcd +1 lainnya
 Menjalankan perintah · 2 sesi aktif
 01:23 elapsed
@@ -44,7 +47,7 @@ presence berpindah menampilkan lagu yang sedang diputar:
 
 ```
 Terminal                          Terminal
-📁 cc-presence          →         ♪ NIKI — Did You Like Her In The Morning?
+📁 lagi-ngapain          →         ♪ NIKI — Did You Like Her In The Morning?
 Ngoprek terminal                  Lagi dengerin
    (lagi ngoding)                    (nganggur)
 ```
@@ -88,11 +91,11 @@ Atau tutup pemutar tertentu saja lewat `abaikan_pemutar` di konfig, mis.
 
 Sampul album jadi gambar besar presence — **di kartu musik maupun saat lagi
 ngoding**. Slot itu yang biasanya diisi ikon aplikasi, jadi selama ada lagu
-yang diputar ikon Claude Code memang tergantikan sampulnya; nama aplikasinya
+yang diputar ikon aplikasinya memang tergantikan sampulnya; nama aplikasinya
 tetap tertulis di baris teratas presence. Di kartu kerja judul lagunya cuma
 muncul saat gambarnya disentuh kursor — dua baris teksnya sudah kepakai nama
 proyek dan kegiatan. Matikan lewat `sampul_saat_kerja: false` kalau ikon
-Claude Code lebih penting.
+aplikasinya lebih penting.
 
 Discord menerima URL
 `https://` mentah di `assets.large_image` — klien Discord sendiri yang
@@ -111,7 +114,7 @@ Sumber sampulnya dua, dicoba berurutan:
    blur (deluxe)*), sementara pencarian per lagu menemukannya dan tetap
    membalas sampul album yang sama.
 
-Hasilnya disinggahi di `~/.cache/cc-presence/sampul.json` (lewat
+Hasilnya disinggahi di `~/.cache/lagi-ngapain/sampul.json` (lewat
 `CacheDirectory=` di berkas unit — sandbox service-nya bikin `~/.cache`
 read-only, dan tanpa baris itu singgahannya gagal ditulis diam-diam), termasuk hasil
 "tidak ketemu" — satu lagu cuma ditanyakan sekali, sesudah itu dibaca dari
@@ -181,14 +184,16 @@ Proyek yang namanya tidak boleh tampil sama sekali didaftarkan di
 Pemasang akan meminta **Application ID** Discord. Bikin dulu:
 
 1. buka <https://discord.com/developers/applications>
-2. **New Application**, namai persis `Claude Code` — nama aplikasi ini yang
-   jadi baris paling atas di presence, dan tidak bisa diganti per pembaruan
+2. **New Application**, namai misalnya `Terminal` — nama aplikasi ini yang
+   jadi baris paling atas di presence, dan tidak bisa diganti per pembaruan.
+   `Claude Code` sendiri ditolak Discord ("The application name is invalid"),
+   karena nama merek.
 3. salin **Application ID** di halaman *General Information*
 
 Tidak perlu bot, token, maupun OAuth. Application ID bukan rahasia.
 
 Pemasang menyunting `~/.claude/settings.json` (dicadangkan dulu ke
-`settings.json.sebelum-cc-presence`) dan hanya menyisipkan entri miliknya —
+`settings.json.sebelum-lagi-ngapain`) dan hanya menyisipkan entri miliknya —
 hook alat lain seperti `rtk` atau `context-mode` tidak disentuh.
 
 > Claude Code membaca ulang `settings.json` saat itu juga, jadi sesi yang
@@ -199,13 +204,13 @@ hook alat lain seperti `rtk` atau `context-mode` tidak disentuh.
 ## Pakai
 
 ```bash
-./cc_daemon.py --status              # konfig, soket, keadaan spool
-systemctl --user restart cc-presence # setelah mengubah konfig
-journalctl --user -u cc-presence -f  # lihat apa yang diterbitkan
-./copot.sh                           # cabut hook + service
+./cc_daemon.py --status               # konfig, soket, keadaan spool
+systemctl --user restart lagi-ngapain # setelah mengubah konfig
+journalctl --user -u lagi-ngapain -f  # lihat apa yang diterbitkan
+./copot.sh                            # cabut hook + service
 ```
 
-Konfigurasi: `~/.config/cc-presence/konfig.json`
+Konfigurasi: `~/.config/lagi-ngapain/konfig.json`
 
 | kunci | bawaan | arti |
 |---|---|---|
