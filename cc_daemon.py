@@ -145,6 +145,8 @@ class Daemon:
             self.terakhir_terbit = 0.0
             return True
         except ValueError as e:  # client_id ditolak -- tidak ada gunanya mengulang
+            # Keluar dengan kode 0 disengaja: Restart=on-failure tidak boleh
+            # memutar ulang daemon yang konfigurasinya salah.
             _log("FATAL:", e)
             _log("Perbaiki client_id di", cc_konfig.jalur_konfig())
             self.jalan = False

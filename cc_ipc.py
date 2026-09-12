@@ -46,6 +46,18 @@ def cari_soket() -> list[str]:
     return [j for j in hasil if _adalah_soket(j)]
 
 
+def _client_id_ditolak(muatan: dict) -> bool:
+    """Apakah penutupan handshake berarti client_id-nya memang salah.
+
+    Hanya bentuk yang sudah diukur ke Discord sungguhan yang dianggap
+    permanen: ``{"code": 4000, "message": "Invalid Client ID"}``. Kode 4000
+    saja tidak cukup -- penolakan lain bisa ikut memakainya, dan salah
+    menggolongkan penolakan sementara sebagai permanen membuat daemon
+    berhenti selamanya.
+    """
+    return muatan.get("code") == 4000 and "client id" in str(muatan.get("message", "")).lower()
+
+
 def _adalah_soket(jalur: str) -> bool:
     import stat
     try:
@@ -87,7 +99,13 @@ class KlienDiscord:
                     self.tutup()
                     # Client ID salah bukan masalah koneksi -- mencoba soket
                     # lain tidak akan menolong, jadi langsung dilempar.
-                    raise ValueError(f"Discord menolak: {pesan}")
+                    if _client_id_ditolak(muatan):
+                        raise ValueError(f"Discord menolak: {pesan}")
+                    # Penolakan lain (mis. "User logged out" saat Discord baru
+                    # dinyalakan dan belum selesai login) sifatnya sementara.
+                    # Sengaja dilempar keluar loop, bukan lanjut ke kandidat
+                    # berikutnya: daemon yang mengulang sesudah JEDA_SAMBUNG.
+                    raise DiscordTidakAda(f"Discord menolak sementara: {pesan}")
                 return
             except (OSError, ValueError) as e:
                 if isinstance(e, ValueError):

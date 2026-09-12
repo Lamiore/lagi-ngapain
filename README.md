@@ -254,11 +254,11 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 ## Uji
 
 ```bash
-python3 uji_semua.py            # 206 uji, cepat (~0,02 dtk)
+python3 uji_semua.py            # 207 uji, cepat (~0,02 dtk)
 python3 probe/pulih_koneksi.py  # ~40 dtk, di luar suite
 ```
 
-206 uji, tanpa Discord yang menyala dan tanpa menyentuh jaringan — bagian
+207 uji, tanpa Discord yang menyala dan tanpa menyentuh jaringan — bagian
 IPC-nya diuji lewat server soket palsu yang bicara protokol yang sama, bagian
 MPRIS-nya lewat jawaban `busctl` palsu, dan pencarian sampulnya lewat pencari
 yang disuntik.

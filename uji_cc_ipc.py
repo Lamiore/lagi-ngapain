@@ -64,7 +64,10 @@ class ServerPalsu:
                 n += 1
                 if op == cc_ipc.OP_HANDSHAKE:
                     if self.tolak_handshake:
-                        self._kirim(c, cc_ipc.OP_CLOSE, {"code": 4000, "message": "Invalid Client ID"})
+                        alasan = self.tolak_handshake
+                        if alasan is True:
+                            alasan = {"code": 4000, "message": "Invalid Client ID"}
+                        self._kirim(c, cc_ipc.OP_CLOSE, alasan)
                         return
                     self._kirim(c, cc_ipc.OP_FRAME, {"cmd": "DISPATCH", "evt": "READY"})
                 else:
@@ -161,6 +164,27 @@ class UjiKlien(unittest.TestCase):
         with self.assertRaises(ValueError) as ctx:
             cc_ipc.KlienDiscord("000").sambung()
         self.assertIn("Invalid Client ID", str(ctx.exception))
+
+    def test_penolakan_lain_bisa_diulang(self):
+        # Kejadian nyata 13 Sept: daemon nyambung 7 detik sesudah Discord
+        # dinyalakan, sebelum login selesai. Discord menutup handshake dengan
+        # "User logged out" -- kodenya tidak tertangkap, jadi yang dianggap
+        # permanen hanya bentuk yang sudah diukur (4000 + Invalid Client ID).
+        for alasan in (
+            {"code": 4000, "message": "User logged out"},
+            {"code": 1000, "message": "User logged out"},
+            {"message": "User logged out"},
+        ):
+            with self.subTest(alasan=alasan):
+                if self.jalur.exists():
+                    self.jalur.unlink()
+                srv = ServerPalsu(self.jalur, tolak_handshake=alasan)
+                self.addCleanup(srv.tutup)
+                k = cc_ipc.KlienDiscord("123456")
+                with self.assertRaises(cc_ipc.DiscordTidakAda) as ctx:
+                    k.sambung()
+                self.assertIn("User logged out", str(ctx.exception))
+                self.assertFalse(k.tersambung)
 
     def test_tanpa_soket_melempar_discordtidakada(self):
         with self.assertRaises(cc_ipc.DiscordTidakAda):
