@@ -1,0 +1,213 @@
+"""Uji untuk cc_daemon -- jalankan: python3 uji_cc_daemon.py
+
+Yang diuji bagian yang tidak kelihatan saat dipakai: penyerapan spool,
+rem laju penerbitan, berkas yang tertangkap separuh tertulis, dan terbit
+ulang setelah koneksi pulih.
+"""
+
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+import cc_daemon
+import cc_konfig
+from cc_ipc import DiscordTidakAda
+
+
+class KlienPalsu:
+    """Pengganti KlienDiscord yang mencatat apa saja yang diterbitkan."""
+
+    def __init__(self, *a, **kw):
+        self.tersambung = False
+        self.terbit = []
+        self.gagal_kirim = False
+        self.gagal_sambung = False
+
+    def sambung(self):
+        if self.gagal_sambung:
+            raise DiscordTidakAda("Discord belum jalan")
+        self.tersambung = True
+
+    def set_activity(self, activity):
+        if self.gagal_kirim:
+            self.tersambung = False
+            raise DiscordTidakAda("koneksi ditutup Discord")
+        self.terbit.append(activity)
+        return {}
+
+    def tutup(self):
+        self.tersambung = False
+
+
+def ev(sid, peristiwa, cwd="/home/ram/workspace/projects/aio-lcd", **tambahan):
+    d = {"session_id": sid, "hook_event_name": peristiwa, "cwd": cwd}
+    d.update(tambahan)
+    return d
+
+
+class DasarDaemon(unittest.TestCase):
+    def setUp(self):
+        self.dir = tempfile.TemporaryDirectory()
+        self.lama = os.environ.get("XDG_RUNTIME_DIR")
+        os.environ["XDG_RUNTIME_DIR"] = self.dir.name
+        cfg = dict(cc_konfig.BAWAAN)
+        cfg["client_id"] = "123456"
+        self.d = cc_daemon.Daemon(cfg)
+        self.d.klien = KlienPalsu()
+        self.d.siapkan_spool()
+
+    def tearDown(self):
+        if self.lama is None:
+            os.environ.pop("XDG_RUNTIME_DIR", None)
+        else:
+            os.environ["XDG_RUNTIME_DIR"] = self.lama
+        self.dir.cleanup()
+
+    def taruh(self, nama, muatan):
+        f = self.d.spool / nama
+        f.write_text(muatan if isinstance(muatan, str) else json.dumps(muatan), encoding="utf-8")
+        return f
+
+
+class UjiSpool(DasarDaemon):
+    def test_peristiwa_terserap_dan_berkasnya_dihapus(self):
+        self.taruh("1.json", ev("a", "PreToolUse", tool_name="Bash"))
+        self.assertTrue(self.d.serap_peristiwa(100.0))
+        self.assertIn("a", self.d.registry.sesi)
+        self.assertEqual(list(self.d.spool.iterdir()), [], "spool harus dikosongkan")
+
+    def test_urutan_nama_berkas_menentukan_urutan_peristiwa(self):
+        # Nama berkas diawali EPOCHREALTIME, jadi urut leksikal = urut waktu.
+        self.taruh("1789206000.100000-1.json", ev("a", "PreToolUse", tool_name="Bash"))
+        self.taruh("1789206000.200000-2.json", ev("a", "Stop"))
+        self.d.serap_peristiwa(100.0)
+        self.assertEqual(self.d.registry.sesi["a"].keadaan, "idle")
+
+    def test_berkas_separuh_tertulis_ditahan_bukan_dibuang(self):
+        # Hook mungkin masih menulis saat daemon menyapu.
+        f = self.taruh("1.json", '{"session_id": "a", "hook_ev')
+        self.d.serap_peristiwa(100.0)
+        self.assertTrue(f.exists(), "harus diberi kesempatan dibaca lagi")
+
+    def test_berkas_rusak_akhirnya_dibuang(self):
+        f = self.taruh("1.json", "{bukan json")
+        os.utime(f, (0, 0))  # bikin tua supaya lewat tenggang
+        self.d.serap_peristiwa(cc_daemon.TENGGANG_RUSAK + 100.0)
+        self.assertFalse(f.exists(), "berkas rusak tidak boleh menyumbat spool")
+
+    def test_json_sah_tapi_bukan_objek_diabaikan(self):
+        self.taruh("1.json", [1, 2, 3])
+        self.d.serap_peristiwa(100.0)
+        self.assertEqual(self.d.registry.sesi, {})
+
+    def test_spool_dibereskan_supaya_hook_jadi_nooop(self):
+        self.taruh("1.json", ev("a", "Stop"))
+        self.d.bereskan_spool()
+        self.assertFalse(self.d.spool.exists())
+
+    def test_siapkan_spool_membuang_sisa_jalan_sebelumnya(self):
+        self.taruh("basi.json", ev("hantu", "PreToolUse"))
+        self.d.siapkan_spool()
+        self.assertEqual(list(self.d.spool.iterdir()), [])
+
+
+class UjiRemLaju(DasarDaemon):
+    def test_terbitan_pertama_langsung_jalan(self):
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.assertEqual(len(self.d.klien.terbit), 1)
+
+    def test_muatan_sama_tidak_diterbitkan_ulang(self):
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.d.terbitkan({"details": "x"}, 500.0)
+        self.assertEqual(len(self.d.klien.terbit), 1)
+
+    def test_perubahan_dalam_jeda_ditahan(self):
+        # Discord membatasi SET_ACTIVITY; tanpa rem ini batasnya jebol saat
+        # tool call beruntun.
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.d.terbitkan({"details": "y"}, 100.0 + cc_konfig.BAWAAN["jeda_publish"] - 1)
+        self.assertEqual(len(self.d.klien.terbit), 1)
+
+    def test_perubahan_setelah_jeda_diterbitkan(self):
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.d.terbitkan({"details": "y"}, 100.0 + cc_konfig.BAWAAN["jeda_publish"] + 1)
+        self.assertEqual(len(self.d.klien.terbit), 2)
+
+    def test_mengosongkan_presence_terhitung_perubahan(self):
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.d.terbitkan(None, 200.0)
+        self.assertEqual(self.d.klien.terbit[-1], None)
+
+    def test_registry_kosong_di_awal_tetap_mengosongkan_sekali(self):
+        # None tidak boleh disamakan dengan "belum pernah terbit".
+        self.d.terbitkan(None, 100.0)
+        self.assertEqual(self.d.klien.terbit, [None])
+
+    def test_kirim_gagal_menjadwalkan_sambung_ulang(self):
+        self.d.klien.gagal_kirim = True
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.assertGreater(self.d.coba_sambung_lagi, 100.0)
+        self.assertIsNot(self.d.terakhir_muatan, {"details": "x"})
+
+
+class UjiKoneksi(DasarDaemon):
+    def test_discord_mati_dijadwalkan_ulang_bukan_berhenti(self):
+        self.d.klien.gagal_sambung = True
+        self.assertFalse(self.d.pastikan_tersambung(100.0))
+        self.assertTrue(self.d.jalan, "daemon harus tetap hidup menunggu Discord")
+        self.assertEqual(self.d.coba_sambung_lagi, 100.0 + cc_daemon.JEDA_SAMBUNG)
+
+    def test_tidak_mencoba_sambung_sebelum_jedanya_lewat(self):
+        self.d.klien.gagal_sambung = True
+        self.d.pastikan_tersambung(100.0)
+        self.d.klien.gagal_sambung = False
+        self.assertFalse(self.d.pastikan_tersambung(101.0))
+        self.assertTrue(self.d.pastikan_tersambung(100.0 + cc_daemon.JEDA_SAMBUNG + 1))
+
+    def test_client_id_ditolak_menghentikan_daemon(self):
+        def tolak():
+            raise ValueError("Discord menolak: Invalid Client ID")
+        self.d.klien.sambung = tolak
+        self.assertFalse(self.d.pastikan_tersambung(100.0))
+        self.assertFalse(self.d.jalan, "mengulang tidak akan menolong")
+
+    def test_sambung_ulang_memaksa_terbit_lagi(self):
+        # Presence hilang saat koneksi putus, jadi muatan yang sama harus
+        # dikirim ulang -- kalau tidak, Discord tetap kosong.
+        self.d.pastikan_tersambung(100.0)
+        self.d.terbitkan({"details": "x"}, 100.0)
+        self.d.klien.tutup()
+        self.d.pastikan_tersambung(200.0)
+        self.d.terbitkan({"details": "x"}, 200.0)
+        self.assertEqual(len(self.d.klien.terbit), 2)
+
+
+class UjiDaurPenuh(DasarDaemon):
+    def test_dari_hook_sampai_presence(self):
+        self.taruh("1.json", ev("a", "PreToolUse", tool_name="Edit",
+                                tool_input={"file_path": "/home/ram/workspace/projects/aio-lcd/x.py"}))
+        sekarang = 100.0
+        self.d.serap_peristiwa(sekarang)
+        self.d.registry.bersihkan(sekarang)
+        self.d.pastikan_tersambung(sekarang)
+        self.d.terbitkan(self.d.registry.rakit(sekarang), sekarang)
+        hasil = self.d.klien.terbit[-1]
+        self.assertEqual(hasil["details"], "\U0001f4c1 aio-lcd")
+        self.assertEqual(hasil["state"], "Menyunting berkas")
+        self.assertNotIn("x.py", hasil["state"], "mode normal tidak boleh bocor nama berkas")
+
+    def test_sesi_basi_mengosongkan_presence(self):
+        self.taruh("1.json", ev("a", "UserPromptSubmit"))
+        self.d.serap_peristiwa(100.0)
+        self.d.pastikan_tersambung(100.0)
+        self.d.terbitkan(self.d.registry.rakit(100.0), 100.0)
+        jauh = 100.0 + cc_konfig.BAWAAN["ttl_sesi"] + 10
+        self.d.registry.bersihkan(jauh)
+        self.d.terbitkan(self.d.registry.rakit(jauh), jauh)
+        self.assertIsNone(self.d.klien.terbit[-1])
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

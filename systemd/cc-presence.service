@@ -1,0 +1,23 @@
+[Unit]
+Description=Discord Rich Presence untuk Claude Code CLI
+Documentation=https://github.com/Lamiore/cc-presence
+After=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/workspace/projects/cc-presence/cc_daemon.py
+# Kode 2 = client_id belum diisi. Itu salah konfigurasi, bukan kegagalan;
+# mengulangnya tiap 10 detik cuma membanjiri journal tanpa memperbaiki apa pun.
+SuccessExitStatus=2
+Restart=on-failure
+RestartSec=10
+# Daemon cuma bicara ke soket di XDG_RUNTIME_DIR dan membaca satu berkas
+# konfigurasi -- tidak ada alasan dia bisa menulis ke mana-mana.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=%t
+
+[Install]
+WantedBy=default.target
