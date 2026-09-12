@@ -186,6 +186,13 @@ Konfigurasi: `~/.config/cc-presence/konfig.json`
 Daemon menggeledah keduanya (plus jalur Snap) alih-alih bergantung pada
 symlink — symlink ke soket Flatpak menggantung setiap kali Discord ditutup.
 
+**Discord ditutup lalu dibuka lagi: presence balik sendiri.** Diukur langsung
+(`probe/pulih_koneksi.py`): daemon melihat broken pipe, menunggu 10 detik,
+menyambung ulang, lalu menerbitkan ulang saat itu juga. Penerbitan ulangnya
+wajib -- Discord membuang presence saat koneksi putus, jadi mengirim muatan
+yang "sama" tetap perlu. Jeda terburuknya sekitar 10 detik sesudah Discord
+kebuka lagi.
+
 **Presence tidak nyangkut.** Kalau terminal ditutup paksa, `SessionEnd` tidak
 sempat jalan; sesi yang diam melewati `ttl_sesi` dibuang sendiri. Discord
 ditutup di tengah jalan pun aman — daemon menyambung ulang tiap 10 detik dan
@@ -194,7 +201,8 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 ## Uji
 
 ```bash
-python3 uji_semua.py
+python3 uji_semua.py            # 146 uji, cepat (~0,01 dtk)
+python3 probe/pulih_koneksi.py  # ~40 dtk, di luar suite
 ```
 
 146 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
