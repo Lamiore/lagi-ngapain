@@ -13,6 +13,7 @@ from pathlib import Path
 
 import cc_daemon
 import cc_konfig
+import cc_state
 from cc_ipc import DiscordTidakAda
 
 
@@ -145,6 +146,20 @@ class UjiRemLaju(DasarDaemon):
         self.d.terbitkan(None, 100.0)
         self.assertEqual(self.d.klien.terbit, [None])
 
+    def test_keadaan_yang_tertahan_rem_terbit_saat_jendelanya_buka(self):
+        # Giliran pendek (prompt -> tool -> stop) terjadi dalam beberapa detik,
+        # jadi penerbitan pertama menang dan sisanya ketahan. Yang penting:
+        # keadaan terakhir tidak ditelan selamanya -- denyut berikutnya
+        # merakit ulang dari registry, jadi begitu jendelanya buka yang
+        # terbit adalah keadaan SEKARANG, bukan yang basi.
+        jeda = self.d.cfg["jeda_publish"]
+        self.d.terbitkan({"details": "x", "state": "Berpikir"}, 100.0)
+        for detik in range(1, jeda):  # ketahan seluruh jendela
+            self.d.terbitkan({"details": "x", "state": "Menunggu perintah"}, 100.0 + detik)
+        self.assertEqual(len(self.d.klien.terbit), 1)
+        self.d.terbitkan({"details": "x", "state": "Menunggu perintah"}, 100.0 + jeda)
+        self.assertEqual(self.d.klien.terbit[-1]["state"], "Menunggu perintah")
+
     def test_kirim_gagal_menjadwalkan_sambung_ulang(self):
         self.d.klien.gagal_kirim = True
         self.d.terbitkan({"details": "x"}, 100.0)
@@ -195,7 +210,7 @@ class UjiDaurPenuh(DasarDaemon):
         self.d.terbitkan(self.d.registry.rakit(sekarang), sekarang)
         hasil = self.d.klien.terbit[-1]
         self.assertEqual(hasil["details"], "\U0001f4c1 aio-lcd")
-        self.assertEqual(hasil["state"], "Menyunting berkas")
+        self.assertEqual(hasil["state"], cc_state.LABEL_BAWAAN["Edit"])
         self.assertNotIn("x.py", hasil["state"], "mode normal tidak boleh bocor nama berkas")
 
     def test_sesi_basi_mengosongkan_presence(self):

@@ -59,6 +59,15 @@ class UjiKonfig(unittest.TestCase):
         self.tulis({"proyek_privat": "skripsi"})
         self.assertEqual(ck.muat(self.jalur)["proyek_privat"], [])
 
+    def test_label_bukan_objek_diabaikan(self):
+        self.tulis({"label": ["bukan", "objek"]})
+        self.assertEqual(ck.muat(self.jalur)["label"], {})
+
+    def test_label_bernilai_bukan_teks_dibuang(self):
+        # Nilai non-teks baru meledak jauh di belakang, saat presence dirakit.
+        self.tulis({"label": {"Bash": "oke", "Read": 123, "Edit": None}})
+        self.assertEqual(ck.muat(self.jalur)["label"], {"Bash": "oke"})
+
     def test_simpan_lalu_muat_pulang_pergi(self):
         cfg = ck.muat(self.jalur)
         cfg["client_id"] = "987"

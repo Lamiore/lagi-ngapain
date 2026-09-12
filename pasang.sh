@@ -57,7 +57,8 @@ systemctl --user enable --now "$UNIT"
 say "$(systemctl --user is-active "$UNIT") -- log: journalctl --user -u $UNIT -f"
 
 echo
-echo "Selesai. Buka sesi Claude Code baru, presence-nya muncul dalam ~15 detik."
-say "Hook cuma aktif di sesi yang dibuka SETELAH ini."
+echo "Selesai. Presence muncul dalam ~15 detik."
+say "Sesi Claude Code yang sedang jalan ikut terpantau -- settings.json"
+say "dibaca ulang saat itu juga, jadi tidak perlu dibuka ulang."
 say "Ubah privasi: $DIR/cc_daemon.py --status, sunting konfignya, lalu"
 say "  systemctl --user restart $UNIT"

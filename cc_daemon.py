@@ -21,6 +21,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import cc_konfig
 from cc_ipc import DiscordTidakAda, KlienDiscord
+from cc_musik import PembacaMusik
 from cc_state import Registry
 
 # Jeda antar denyut. Jauh lebih rapat dari jeda penerbitan supaya peristiwa
@@ -55,8 +56,12 @@ class Daemon:
             mode=cfg["mode"],
             proyek_privat=cfg["proyek_privat"],
             tampilkan_timer=cfg["tampilkan_timer"],
+            label=cfg["label"],
         )
         self.klien = KlienDiscord(cfg["client_id"])
+        # Dibaca berkala, bukan tiap denyut: satu pembacaan memanggil
+        # beberapa proses busctl, sementara lagu tidak berganti tiap detik.
+        self.musik = PembacaMusik(abaikan=cfg["abaikan_pemutar"]) if cfg["musik"] else None
         self.terakhir_terbit = 0.0
         self.terakhir_muatan = BELUM_PERNAH
         self.coba_sambung_lagi = 0.0
@@ -168,7 +173,8 @@ class Daemon:
                 self.serap_peristiwa(sekarang)
                 self.registry.bersihkan(sekarang)
                 if self.pastikan_tersambung(sekarang):
-                    self.terbitkan(self.registry.rakit(sekarang), sekarang)
+                    lagu = self.musik.sekarang(sekarang) if self.musik else None
+                    self.terbitkan(self.registry.rakit(sekarang, lagu), sekarang)
                 time.sleep(DENYUT)
         finally:
             if self.klien.tersambung:
@@ -187,6 +193,8 @@ def main(argv=None) -> int:
     p.add_argument("--mode", choices=cc_konfig.MODE_VALID, help="timpa tingkat privasi sekali jalan")
     p.add_argument("--client-id", help="timpa Application ID sekali jalan")
     p.add_argument("--status", action="store_true", help="tampilkan keadaan lalu keluar")
+    p.add_argument("--musik", choices=("on", "off"),
+                   help="nyalakan/matikan tampilan lagu, lalu muat ulang service")
     args = p.parse_args(argv)
 
     cfg = cc_konfig.muat()
@@ -195,11 +203,26 @@ def main(argv=None) -> int:
     if args.client_id:
         cfg["client_id"] = args.client_id.strip()
 
+    if args.musik:
+        cfg["musik"] = args.musik == "on"
+        cc_konfig.simpan(cfg)
+        print("musik:", "nyala" if cfg["musik"] else "MATI")
+        # Daemon membaca konfig sekali saat start, jadi perubahannya baru
+        # berlaku setelah dimuat ulang. Dilakukan di sini supaya "tombol
+        # panik" benar-benar satu perintah.
+        import subprocess
+        hasil = subprocess.run(["systemctl", "--user", "restart", "cc-presence.service"],
+                               capture_output=True, text=True)
+        print("service:", "dimuat ulang" if hasil.returncode == 0 else "belum jalan, tidak dimuat ulang")
+        return 0
+
     if args.status:
         from cc_ipc import cari_soket
         print("konfig       :", cc_konfig.jalur_konfig())
         print("client_id    :", cfg["client_id"] or "(belum diisi)")
         print("mode privasi :", cfg["mode"])
+        print("musik        :", "nyala" if cfg["musik"] else "mati",
+              ("(abaikan: " + ", ".join(cfg["abaikan_pemutar"]) + ")") if cfg["abaikan_pemutar"] else "")
         print("soket Discord:", ", ".join(cari_soket()) or "(tidak ketemu -- Discord belum jalan?)")
         spool = dir_spool()
         print("spool        :", spool, "(aktif)" if spool.is_dir() else "(daemon mati)")

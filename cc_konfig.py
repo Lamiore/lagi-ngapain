@@ -37,6 +37,14 @@ BAWAAN: dict = {
     # tidak sempat jalan).
     "ttl_sesi": 900,
     "tampilkan_timer": True,
+    # Tampilkan lagu yang sedang diputar saat tidak ada yang dikerjakan.
+    "musik": True,
+    # Awalan nama pemutar yang tidak boleh dibaca sama sekali, mis.
+    # ["brave", "firefox"] untuk menutup judul video dari browser.
+    "abaikan_pemutar": [],
+    # Timpaan label kegiatan, mis. {"Bash": "Ngetik perintah", "idle": "Rehat"}.
+    # Kunci yang tidak disebut memakai bawaan di cc_state.LABEL_BAWAAN.
+    "label": {},
 }
 
 
@@ -60,6 +68,13 @@ def muat(jalur: Path | None = None) -> dict:
         cfg["mode"] = BAWAAN["mode"]
     if not isinstance(cfg["proyek_privat"], list):
         cfg["proyek_privat"] = []
+    if not isinstance(cfg["abaikan_pemutar"], list):
+        cfg["abaikan_pemutar"] = []
+    if not isinstance(cfg["label"], dict):
+        cfg["label"] = {}
+    else:
+        # Nilai non-teks akan meledak saat dirakit; buang di sini selagi murah.
+        cfg["label"] = {str(k): str(v) for k, v in cfg["label"].items() if isinstance(v, str)}
     # Jeda di bawah 15 detik menabrak batas laju Discord.
     cfg["jeda_publish"] = max(15, int(cfg["jeda_publish"] or 15))
     cfg["ttl_sesi"] = max(60, int(cfg["ttl_sesi"] or 900))

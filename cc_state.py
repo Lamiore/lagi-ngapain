@@ -21,34 +21,47 @@ IDLE = "idle"
 BERPIKIR = "berpikir"
 BEKERJA = "bekerja"
 
-_LABEL_ALAT = {
-    "Bash": "Menjalankan perintah",
-    "Read": "Membaca berkas",
-    "Edit": "Menyunting berkas",
-    "Write": "Menulis berkas",
-    "NotebookEdit": "Menyunting notebook",
-    "Grep": "Mencari di kode",
-    "Glob": "Menelusuri berkas",
-    "WebSearch": "Mencari di web",
-    "WebFetch": "Membaca halaman web",
-    "Task": "Menjalankan subagen",
-    "Agent": "Menjalankan subagen",
-    "TodoWrite": "Menyusun rencana",
-    "Skill": "Memakai skill",
+# Label bawaan. Semuanya bisa ditimpa lewat kunci "label" di konfig, jadi
+# mengubah kata-katanya tidak perlu menyentuh kode. Kunci bernama alat
+# dicocokkan persis; empat kunci huruf kecil di bawah ini khusus dan tidak
+# akan pernah bentrok dengan nama alat (nama alat selalu CamelCase).
+LABEL_BAWAAN = {
+    "Bash": "Ngoprek terminal",
+    "Read": "Baca kode",
+    "Edit": "Ngedit kode",
+    "Write": "Nulis kode",
+    "NotebookEdit": "Ngedit notebook",
+    "Grep": "Nyari-nyari",
+    "Glob": "Nyari-nyari",
+    "WebSearch": "Googling",
+    "WebFetch": "Baca web",
+    "Task": "Nyuruh subagen",
+    "Agent": "Nyuruh subagen",
+    "TodoWrite": "Nyusun rencana",
+    "Skill": "Makai skill",
+    # -- kunci khusus --
+    "mcp": "Makai MCP",          # untuk alat apa pun berawalan mcp__
+    "lainnya": "Makai {alat}",   # cadangan; {alat} diganti nama alatnya
+    "berpikir": "Mikir",         # sesudah prompt, sebelum alat pertama
+    "idle": "Nganggur",          # menunggu perintah berikutnya
+    "dengerin": "Lagi dengerin",  # kartu musik, saat tidak ada yang dikerjakan
 }
 
 # Batas panjang field Discord.
 BATAS_FIELD = 128
 
 
-def label_alat(nama: str) -> str:
+def label_alat(nama: str, peta: dict | None = None) -> str:
+    peta = {**LABEL_BAWAAN, **(peta or {})}
     if not nama:
-        return "Bekerja"
-    if nama in _LABEL_ALAT:
-        return _LABEL_ALAT[nama]
+        return peta["lainnya"].format(alat="").strip() or peta["idle"]
+    if nama in peta:
+        return peta[nama]
     if nama.startswith("mcp__"):
-        return "Memakai MCP"
-    return f"Memakai {nama}"
+        # Nama server MCP sengaja tidak ikut ditampilkan -- sering memuat
+        # nama perusahaan atau proyek internal.
+        return peta["mcp"]
+    return peta["lainnya"].format(alat=nama)
 
 
 def _potong(teks: str, batas: int = BATAS_FIELD) -> str:
@@ -82,6 +95,7 @@ class Registry:
     mode: str = "normal"
     proyek_privat: tuple = ()
     tampilkan_timer: bool = True
+    label: dict = field(default_factory=dict)
     sesi: dict = field(default_factory=dict)
     _hitung: int = 0
 
@@ -143,9 +157,28 @@ class Registry:
             return "proyek privat"
         return nama
 
-    def rakit(self, sekarang: float) -> dict | None:
-        """Rakit payload activity Discord. ``None`` berarti kosongkan presence."""
+    def _kartu_musik(self, musik: dict, peta: dict) -> dict:
+        """Presence versi 'lagi dengerin', dipakai saat tidak ada yang dikerjakan."""
+        if self.mode == "minimal":
+            # Judul lagu sama personalnya dengan nama proyek; mode minimal
+            # menjanjikan tidak membocorkan keduanya.
+            return {"details": _potong(peta["dengerin"])}
+        judul = musik.get("judul", "")
+        artis = musik.get("artis", "")
+        teks = f"{artis} \u2014 {judul}" if artis else judul
+        return {"details": _potong(f"\u266a {teks}"), "state": _potong(peta["dengerin"])}
+
+    def rakit(self, sekarang: float, musik: dict | None = None) -> dict | None:
+        """Rakit payload activity Discord. ``None`` berarti kosongkan presence.
+
+        Lagu hanya tampil saat tidak ada sesi yang sedang bekerja atau
+        berpikir -- Discord cuma punya dua baris teks, jadi menampilkan
+        keduanya sekaligus membuat dua-duanya terpotong.
+        """
         hidup = list(self.sesi.values())
+        sibuk = any(s.keadaan in (BEKERJA, BERPIKIR) for s in hidup)
+        if musik and not sibuk:
+            return self._kartu_musik(musik, {**LABEL_BAWAAN, **self.label})
         if not hidup:
             return None
 
@@ -160,14 +193,15 @@ class Registry:
             if jumlah > 1:
                 details += f" +{jumlah - 1} lainnya"
 
+        peta = {**LABEL_BAWAAN, **self.label}
         if utama.keadaan == BEKERJA:
-            state = label_alat(utama.alat)
+            state = label_alat(utama.alat, peta)
             if self.mode == "detail" and utama.rincian_alat:
                 state += f": {utama.rincian_alat}"
         elif utama.keadaan == BERPIKIR:
-            state = "Berpikir"
+            state = peta["berpikir"]
         else:
-            state = "Menunggu perintah"
+            state = peta["idle"]
 
         if jumlah > 1:
             state += f" · {jumlah} sesi aktif"

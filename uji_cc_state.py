@@ -29,16 +29,16 @@ class UjiPeralihan(unittest.TestCase):
 
     def test_pretooluse_jadi_bekerja(self):
         self.r.terapkan(ev("a", "PreToolUse", tool_name="Read"), 10.0)
-        self.assertEqual(self.r.rakit(10.0)["state"], "Membaca berkas")
+        self.assertEqual(self.r.rakit(10.0)["state"], cs.LABEL_BAWAAN["Read"])
 
     def test_stop_jadi_menunggu(self):
         self.r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), 10.0)
         self.r.terapkan(ev("a", "Stop"), 11.0)
-        self.assertEqual(self.r.rakit(11.0)["state"], "Menunggu perintah")
+        self.assertEqual(self.r.rakit(11.0)["state"], cs.LABEL_BAWAAN["idle"])
 
     def test_prompt_jadi_berpikir(self):
         self.r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
-        self.assertEqual(self.r.rakit(10.0)["state"], "Berpikir")
+        self.assertEqual(self.r.rakit(10.0)["state"], cs.LABEL_BAWAAN["berpikir"])
 
     def test_sessionend_membuang_sesi(self):
         self.r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
@@ -54,7 +54,7 @@ class UjiPeralihan(unittest.TestCase):
 
     def test_alat_mcp_tidak_membocorkan_nama_server(self):
         self.r.terapkan(ev("a", "PreToolUse", tool_name="mcp__plugin_github_github__get_me"), 10.0)
-        self.assertEqual(self.r.rakit(10.0)["state"], "Memakai MCP")
+        self.assertEqual(self.r.rakit(10.0)["state"], cs.LABEL_BAWAAN["mcp"])
 
 
 class UjiBanyakSesi(unittest.TestCase):
@@ -101,6 +101,105 @@ class UjiBanyakSesi(unittest.TestCase):
         self.r.terapkan(ev("b", "UserPromptSubmit", cwd="/tmp/lain"), 1000.0)
         self.r.bersihkan(1001.0)
         self.assertEqual(list(self.r.sesi), ["b"])
+
+
+class UjiLabel(unittest.TestCase):
+    """Label boleh diganti tanpa menyentuh kode."""
+
+    def _state(self, **kw):
+        r = cs.Registry(**kw)
+        r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), 10.0)
+        return r.rakit(10.0)["state"]
+
+    def test_timpaan_alat_dipakai(self):
+        self.assertEqual(self._state(label={"Bash": "Ngetik perintah"}), "Ngetik perintah")
+
+    def test_kunci_yang_tidak_ditimpa_tetap_bawaan(self):
+        r = cs.Registry(label={"Bash": "X"})
+        r.terapkan(ev("a", "PreToolUse", tool_name="Read"), 10.0)
+        self.assertEqual(r.rakit(10.0)["state"], cs.LABEL_BAWAAN["Read"])
+
+    def test_timpaan_keadaan_idle_dan_berpikir(self):
+        r = cs.Registry(label={"idle": "Rehat", "berpikir": "Ngelamun"})
+        r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
+        self.assertEqual(r.rakit(10.0)["state"], "Ngelamun")
+        r.terapkan(ev("a", "Stop"), 11.0)
+        self.assertEqual(r.rakit(11.0)["state"], "Rehat")
+
+    def test_timpaan_mcp_berlaku_untuk_semua_server(self):
+        r = cs.Registry(label={"mcp": "Nyolek MCP"})
+        r.terapkan(ev("a", "PreToolUse", tool_name="mcp__apa__pun"), 10.0)
+        self.assertEqual(r.rakit(10.0)["state"], "Nyolek MCP")
+
+    def test_cadangan_menyisipkan_nama_alat(self):
+        r = cs.Registry(label={"lainnya": "Lagi {alat}"})
+        r.terapkan(ev("a", "PreToolUse", tool_name="AlatAsing"), 10.0)
+        self.assertEqual(r.rakit(10.0)["state"], "Lagi AlatAsing")
+
+    def test_label_masih_digabung_dengan_jumlah_sesi(self):
+        r = cs.Registry(label={"Bash": "Ngetik"})
+        r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), 10.0)
+        r.terapkan(ev("b", "PreToolUse", cwd="/tmp/lain", tool_name="Bash"), 11.0)
+        self.assertEqual(r.rakit(11.0)["state"], "Ngetik \u00b7 2 sesi aktif")
+
+    def test_mode_detail_tetap_menempel_pada_label_timpaan(self):
+        r = cs.Registry(mode="detail", label={"Edit": "Ngoret"})
+        r.terapkan(ev("a", "PreToolUse", tool_name="Edit",
+                      tool_input={"file_path": "/x/y/lcd_gif.py"}), 10.0)
+        self.assertEqual(r.rakit(10.0)["state"], "Ngoret: lcd_gif.py")
+
+
+class UjiKartuMusik(unittest.TestCase):
+    """Lagu hanya muncul saat tidak ada yang dikerjakan."""
+
+    LAGU = {"judul": "Too Soon", "artis": "Oliver Steele", "pemutar": "brave"}
+
+    def setUp(self):
+        self.r = cs.Registry()
+
+    def test_tanpa_sesi_tapi_ada_lagu_presence_tetap_tampil(self):
+        hasil = self.r.rakit(10.0, self.LAGU)
+        self.assertIn("Too Soon", hasil["details"])
+        self.assertEqual(hasil["state"], cs.LABEL_BAWAAN["dengerin"])
+
+    def test_tanpa_sesi_tanpa_lagu_presence_dikosongkan(self):
+        self.assertIsNone(self.r.rakit(10.0, None))
+
+    def test_saat_bekerja_kerjaan_menang_atas_lagu(self):
+        # Discord cuma punya dua baris; menampilkan keduanya memotong keduanya.
+        self.r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), 10.0)
+        self.assertIn("aio-lcd", self.r.rakit(10.0, self.LAGU)["details"])
+
+    def test_saat_berpikir_kerjaan_juga_menang(self):
+        self.r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
+        self.assertIn("aio-lcd", self.r.rakit(10.0, self.LAGU)["details"])
+
+    def test_sesi_idle_memberi_giliran_ke_lagu(self):
+        self.r.terapkan(ev("a", "Stop"), 10.0)
+        self.assertIn("Too Soon", self.r.rakit(10.0, self.LAGU)["details"])
+
+    def test_satu_sesi_sibuk_sudah_cukup_menahan_lagu(self):
+        self.r.terapkan(ev("a", "Stop"), 10.0)
+        self.r.terapkan(ev("b", "PreToolUse", cwd="/tmp/lain", tool_name="Bash"), 11.0)
+        self.assertNotIn("Too Soon", self.r.rakit(11.0, self.LAGU)["details"])
+
+    def test_tanpa_artis_judul_saja(self):
+        hasil = self.r.rakit(10.0, {"judul": "Nada", "artis": ""})
+        self.assertEqual(hasil["details"], "\u266a Nada")
+
+    def test_mode_minimal_tidak_membocorkan_judul(self):
+        r = cs.Registry(mode="minimal")
+        hasil = r.rakit(10.0, self.LAGU)
+        self.assertNotIn("Too Soon", hasil["details"])
+        self.assertNotIn("Oliver", hasil["details"])
+
+    def test_label_dengerin_bisa_ditimpa(self):
+        r = cs.Registry(label={"dengerin": "Lagi nyetel"})
+        self.assertEqual(r.rakit(10.0, self.LAGU)["state"], "Lagi nyetel")
+
+    def test_judul_panjang_dipotong(self):
+        hasil = self.r.rakit(10.0, {"judul": "L" * 300, "artis": "A" * 300})
+        self.assertLessEqual(len(hasil["details"]), cs.BATAS_FIELD)
 
 
 class UjiPrivasi(unittest.TestCase):

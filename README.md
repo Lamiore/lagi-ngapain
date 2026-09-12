@@ -37,6 +37,41 @@ Daemon berbicara protokol Discord IPC secara langsung (bingkai
 opcode yang dipakai, jadi memasang `pypresence` — yang butuh venv karena pip
 sistem terkunci PEP 668 — tidak sepadan.
 
+## Lagu yang sedang diputar
+
+Saat tidak ada sesi yang sedang bekerja — atau tidak ada sesi sama sekali —
+presence berpindah menampilkan lagu yang sedang diputar:
+
+```
+Terminal                          Terminal
+📁 cc-presence          →         ♪ NIKI — Did You Like Her In The Morning?
+Ngoprek terminal                  Lagi dengerin
+   (lagi ngoding)                    (nganggur)
+```
+
+Keduanya sengaja tidak pernah tampil bersamaan: Discord cuma punya dua baris
+teks, jadi menggabungkannya membuat dua-duanya terpotong.
+
+Sumbernya **MPRIS** di D-Bus sesi lewat `busctl` — bukan pustaka D-Bus, karena
+pip sistem terkunci PEP 668 dan `busctl` sudah pasti ada (bagian dari systemd).
+Hampir semua pemutar di Linux mengumumkan diri lewat MPRIS: Spotify, VLC, mpv,
+dan tab browser termasuk.
+
+**Yang perlu disadari soal browser.** Tab browser mengumumkan judul apa pun
+yang sedang diputar, bukan cuma musik — judul video YouTube ikut tampil. Yang
+**tidak** terbaca: judul tab biasa (GNOME Wayland menutup itu, dan MPRIS memang
+hanya mengumumkan media), halaman tanpa media, dan video yang dijeda.
+
+Kalau itu tidak diinginkan:
+
+```bash
+./cc_daemon.py --musik off      # matikan seketika, service dimuat ulang
+./cc_daemon.py --musik on
+```
+
+Atau tutup pemutar tertentu saja lewat `abaikan_pemutar` di konfig, mis.
+`["brave", "firefox"]` — Spotify tetap terbaca, browser tidak.
+
 ## Privasi
 
 Rich Presence terbaca oleh **seluruh daftar teman**. Bawaannya karena itu
@@ -51,6 +86,13 @@ ditampilkan kecuali diminta.
 
 Bahkan di `detail`, perintah Bash dipotong ke **kata pertama saja** — jadi
 `psql -U admin -W hunter2 -h db.internal` tampil sebagai `psql`.
+
+Mode `minimal` juga menutup judul lagu, bukan cuma nama proyek — judul lagu
+sama personalnya.
+
+**Dua sumber data, tidak ada yang lain:** muatan hook Claude Code (`cwd`,
+nama alat, id sesi) dan MPRIS di D-Bus sesi. Judul jendela, isi berkas,
+ketikan, dan papan klip tidak pernah disentuh.
 
 Proyek yang namanya tidak boleh tampil sama sekali didaftarkan di
 `proyek_privat`; namanya diganti "proyek privat".
@@ -74,7 +116,10 @@ Pemasang menyunting `~/.claude/settings.json` (dicadangkan dulu ke
 `settings.json.sebelum-cc-presence`) dan hanya menyisipkan entri miliknya —
 hook alat lain seperti `rtk` atau `context-mode` tidak disentuh.
 
-> Hook cuma aktif di sesi Claude Code yang dibuka **setelah** pemasangan.
+> Claude Code membaca ulang `settings.json` saat itu juga, jadi sesi yang
+> **sedang berjalan** pun langsung ikut terpantau — tidak perlu dibuka ulang.
+> (Diuji langsung: presence terbit ~15 detik setelah `pasang.sh` selesai,
+> dari sesi yang sudah jalan sebelum pemasangan.)
 
 ## Pakai
 
@@ -95,6 +140,9 @@ Konfigurasi: `~/.config/cc-presence/konfig.json`
 | `jeda_publish` | `15` | jarak minimum antar penerbitan, detik |
 | `ttl_sesi` | `900` | sesi sediam ini dianggap mati, detik |
 | `tampilkan_timer` | `true` | tampilkan lama sesi |
+| `musik` | `true` | tampilkan lagu saat tidak ada yang dikerjakan |
+| `abaikan_pemutar` | `[]` | awalan nama pemutar yang tidak boleh dibaca |
+| `label` | `{}` | timpaan teks kegiatan, mis. `{"Bash": "Ngetik perintah"}` |
 
 `jeda_publish` tidak bisa turun di bawah 15 detik — Discord membatasi laju
 `SET_ACTIVITY` (~5 per 20 detik), dan tool call beruntun akan menjebolnya.
@@ -117,8 +165,21 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 python3 uji_semua.py
 ```
 
-87 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
-palsu yang bicara protokol yang sama.
+130 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
+palsu yang bicara protokol yang sama, dan bagian MPRIS-nya lewat jawaban
+`busctl` palsu.
+
+### Mengubah kata-katanya
+
+Semua teks kegiatan bisa ditimpa dari konfig tanpa menyentuh kode:
+
+```json
+{ "label": { "Bash": "Ngetik perintah", "idle": "Rehat dulu" } }
+```
+
+Kunci yang tidak disebut memakai bawaan di `cc_state.LABEL_BAWAAN`. Selain
+nama alat, ada empat kunci khusus: `mcp`, `lainnya` (cadangan, `{alat}`
+diganti nama alatnya), `berpikir`, `idle`, dan `dengerin`.
 
 ## Lisensi
 
