@@ -1,6 +1,6 @@
-"""Probe pemulihan koneksi -- jalankan: python3 probe/pulih_koneksi.py
+"""Probe pemulihan koneksi -- jalankan: python3 uji/probe/pulih_koneksi.py
 
-Bukan bagian dari uji_semua.py: makan ~40 detik karena harus menunggu jeda
+Bukan bagian dari uji/semua.py: makan ~40 detik karena harus menunggu jeda
 sambung-ulang yang sesungguhnya. Yang dibuktikan di sini tidak bisa dibuktikan
 uji satuan -- daemon SUNGGUHAN menghadapi soket yang benar-benar hilang lalu
 kembali, lengkap dengan broken pipe dan penerbitan ulangnya.
@@ -14,7 +14,7 @@ palsunya proses terpisah yang bisa di-kill sungguhan.
 import json, os, signal, subprocess, sys, tempfile, threading, time
 from pathlib import Path
 SP = os.path.dirname(os.path.abspath(__file__))
-DIR = os.path.dirname(SP)
+DIR = os.path.dirname(os.path.dirname(SP))
 
 tmp = tempfile.mkdtemp()
 runtime = Path(tmp, "run"); runtime.mkdir()

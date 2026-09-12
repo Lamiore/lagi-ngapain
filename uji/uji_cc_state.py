@@ -1,10 +1,14 @@
-"""Uji untuk cc_state -- jalankan: python3 uji_cc_state.py
+"""Uji untuk cc_state -- jalankan: python3 uji/uji_cc_state.py
 
 Fokusnya tiga hal yang paling gampang salah dan paling mahal kalau salah:
 peralihan keadaan sesi, penggabungan banyak sesi, dan penyaringan privasi.
 """
 
+import sys
 import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cc_state as cs
 

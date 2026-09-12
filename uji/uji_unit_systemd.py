@@ -1,4 +1,4 @@
-"""Uji berkas unit systemd -- jalankan: python3 uji_unit_systemd.py
+"""Uji berkas unit systemd -- jalankan: python3 uji/uji_unit_systemd.py
 
 Bukan uji perilaku: service sungguhan butuh Discord yang menyala. Yang
 dijaga di sini cuma hal-hal yang kalau salah baru ketahuan berhari-hari
@@ -9,7 +9,7 @@ import configparser
 import unittest
 from pathlib import Path
 
-UNIT = Path(__file__).parent / "systemd" / "lagi-ngapain.service"
+UNIT = Path(__file__).resolve().parent.parent / "systemd" / "lagi-ngapain.service"
 
 
 class UjiUnit(unittest.TestCase):

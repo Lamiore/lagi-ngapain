@@ -1,4 +1,4 @@
-"""Uji untuk cc_pasang -- jalankan: python3 uji_cc_pasang.py
+"""Uji untuk cc_pasang -- jalankan: python3 uji/uji_cc_pasang.py
 
 settings.json milik pengguna biasanya sudah penuh hook alat lain. Uji ini
 memakai cuplikan bentuk nyata dari mesin ini supaya pemasangan terbukti
@@ -6,9 +6,12 @@ tidak menabrak apa pun.
 """
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cc_pasang as cp
 from cc_state import PERISTIWA

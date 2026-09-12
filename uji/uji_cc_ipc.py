@@ -1,4 +1,4 @@
-"""Uji untuk cc_ipc -- jalankan: python3 uji_cc_ipc.py
+"""Uji untuk cc_ipc -- jalankan: python3 uji/uji_cc_ipc.py
 
 Discord sungguhan tidak dipakai. Sebagai gantinya ada server soket palsu
 yang bicara protokol yang sama, jadi bingkai, handshake, dan penanganan
@@ -9,10 +9,13 @@ import json
 import os
 import socket
 import struct
+import sys
 import tempfile
 import threading
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cc_ipc
 

@@ -1,12 +1,16 @@
-"""Uji untuk cc_musik -- jalankan: python3 uji_cc_musik.py
+"""Uji untuk cc_musik -- jalankan: python3 uji/uji_cc_musik.py
 
 D-Bus sungguhan tidak dipanggil; ``_busctl`` diganti dengan jawaban palsu
 supaya bentuk balasan yang aneh (pemutar dijeda, artis berupa larik,
 busctl gagal) bisa diuji tanpa memutar musik betulan.
 """
 
+import sys
 import unittest
+from pathlib import Path
 from unittest import mock
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cc_musik as cm
 

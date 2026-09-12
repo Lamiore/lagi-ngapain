@@ -1,9 +1,12 @@
-"""Uji untuk cc_konfig -- jalankan: python3 uji_cc_konfig.py"""
+"""Uji untuk cc_konfig -- jalankan: python3 uji/uji_cc_konfig.py"""
 
 import json
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cc_konfig as ck
 

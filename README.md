@@ -244,7 +244,7 @@ Daemon menggeledah keduanya (plus jalur Snap) alih-alih bergantung pada
 symlink — symlink ke soket Flatpak menggantung setiap kali Discord ditutup.
 
 **Discord ditutup lalu dibuka lagi: presence balik sendiri.** Diukur langsung
-(`probe/pulih_koneksi.py`): daemon melihat broken pipe, menunggu 10 detik,
+(`uji/probe/pulih_koneksi.py`): daemon melihat broken pipe, menunggu 10 detik,
 menyambung ulang, lalu menerbitkan ulang saat itu juga. Penerbitan ulangnya
 wajib -- Discord membuang presence saat koneksi putus, jadi mengirim muatan
 yang "sama" tetap perlu. Jeda terburuknya sekitar 10 detik sesudah Discord
@@ -258,8 +258,9 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 ## Uji
 
 ```bash
-python3 uji_semua.py            # 207 uji, cepat (~0,02 dtk)
-python3 probe/pulih_koneksi.py  # ~40 dtk, di luar suite
+python3 uji/semua.py                # 207 uji, cepat (~0,02 dtk)
+python3 uji/uji_cc_state.py         # satu berkas saja
+python3 uji/probe/pulih_koneksi.py  # ~40 dtk, di luar suite
 ```
 
 207 uji, tanpa Discord yang menyala dan tanpa menyentuh jaringan — bagian

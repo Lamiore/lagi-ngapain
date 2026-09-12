@@ -1,4 +1,4 @@
-"""Uji untuk cc_daemon -- jalankan: python3 uji_cc_daemon.py
+"""Uji untuk cc_daemon -- jalankan: python3 uji/uji_cc_daemon.py
 
 Yang diuji bagian yang tidak kelihatan saat dipakai: penyerapan spool,
 rem laju penerbitan, berkas yang tertangkap separuh tertulis, dan terbit
@@ -7,9 +7,12 @@ ulang setelah koneksi pulih.
 
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import cc_daemon
 import cc_konfig
