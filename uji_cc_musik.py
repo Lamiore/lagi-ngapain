@@ -155,5 +155,26 @@ class UjiSinggahan(unittest.TestCase):
         self.assertIsNotNone(p.sekarang(0.0))
 
 
+class UjiMetadataSampul(unittest.TestCase):
+    """Data yang dibutuhkan pencarian sampul ikut dibaca dari MPRIS."""
+
+    def _jalankan(self, meta):
+        with mock.patch.object(cm, "_busctl", balasan({BRAVE: ("Playing", meta)})):
+            return cm.lagu_sekarang()
+
+    def test_album_dan_art_url_ikut_terbaca(self):
+        lagu = self._jalankan({
+            "xesam:title": "august", "xesam:artist": ["Taylor Swift"],
+            "xesam:album": "folklore", "mpris:artUrl": "file:///tmp/x.png"})
+        self.assertEqual(lagu["album"], "folklore")
+        self.assertEqual(lagu["sampul_mentah"], "file:///tmp/x.png")
+
+    def test_metadata_tanpa_album_tetap_punya_kuncinya(self):
+        # Pencari sampul membaca kunci ini langsung; kalau hilang, meledak.
+        lagu = self._jalankan({"xesam:title": "Nada"})
+        self.assertEqual(lagu["album"], "")
+        self.assertEqual(lagu["sampul_mentah"], "")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

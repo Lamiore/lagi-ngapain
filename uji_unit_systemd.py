@@ -36,6 +36,13 @@ class UjiUnit(unittest.TestCase):
         # ini Restart=on-failure akan mengulangnya tiap 10 detik selamanya.
         self.assertEqual(self.cfg["Service"]["SuccessExitStatus"], "2")
 
+    def test_singgahan_sampul_punya_tempat_yang_bisa_ditulis(self):
+        # ProtectHome=read-only bikin ~/.cache read-only buat service ini,
+        # dan cc_sampul menelan galat tulisnya (singgahan itu kenyamanan,
+        # bukan syarat). Tanpa baris ini singgahannya gagal ditulis diam-diam
+        # tiap lagu baru, dan iTunes ditanya ulang tiap daemon dinyalakan.
+        self.assertEqual(self.cfg["Service"]["CacheDirectory"], "cc-presence")
+
     def test_ada_jeda_restart_supaya_tidak_kebut(self):
         self.assertGreaterEqual(int(self.cfg["Service"]["RestartSec"]), 5)
 

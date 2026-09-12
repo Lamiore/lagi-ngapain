@@ -22,6 +22,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import cc_konfig
 from cc_ipc import DiscordTidakAda, KlienDiscord
 from cc_musik import PembacaMusik
+import cc_sampul
+from cc_sampul import PencariSampul
 from cc_state import Registry
 
 # Jeda antar denyut. Jauh lebih rapat dari jeda penerbitan supaya peristiwa
@@ -60,11 +62,16 @@ class Daemon:
             tipe_kerja=cfg["tipe_kerja"],
             tipe_musik=cfg["tipe_musik"],
             kartu_kosong=cfg["kartu_kosong"],
+            sampul_saat_kerja=cfg["sampul_saat_kerja"],
         )
         self.klien = KlienDiscord(cfg["client_id"])
         # Dibaca berkala, bukan tiap denyut: satu pembacaan memanggil
         # beberapa proses busctl, sementara lagu tidak berganti tiap detik.
         self.musik = PembacaMusik(abaikan=cfg["abaikan_pemutar"]) if cfg["musik"] else None
+        # Mode minimal menjanjikan judul lagu tidak ke mana-mana -- termasuk
+        # tidak ke API pencarian sampul.
+        self.sampul = (PencariSampul() if self.musik and cfg.get("sampul", True)
+                       and cfg["mode"] != "minimal" else None)
         self.terakhir_terbit = 0.0
         self.terakhir_muatan = BELUM_PERNAH
         self.coba_sambung_lagi = 0.0
@@ -112,6 +119,17 @@ class Daemon:
                 berubah = True
         return berubah
 
+    def lagu_kini(self, sekarang: float):
+        """Lagu yang sedang diputar, dilengkapi URL sampulnya kalau ketemu.
+
+        Pencariannya di sini, bukan di Registry: Registry sengaja tidak
+        menyentuh jaringan supaya perakitan presence tetap murni logika.
+        """
+        lagu = self.musik.sekarang(sekarang) if self.musik else None
+        if lagu and self.sampul:
+            lagu = dict(lagu, sampul=self.sampul.untuk(lagu))
+        return lagu
+
     # -- penerbitan ---------------------------------------------------------
 
     def pastikan_tersambung(self, sekarang: float) -> bool:
@@ -155,6 +173,10 @@ class Daemon:
             ruas = [TIPE_VALID.get(activity.get("type"), "?"), activity.get("details")]
             if activity.get("state"):  # kartu kosong tidak punya baris kedua
                 ruas.append(activity["state"])
+            # Gambar yang ditolak Discord tidak menimbulkan galat apa pun,
+            # jadi journal ini satu-satunya tanda sampulnya ikut terkirim.
+            if activity.get("assets", {}).get("large_image"):
+                ruas.append("+sampul")
             _log("presence:", " | ".join(ruas))
 
     # -- daur hidup ---------------------------------------------------------
@@ -180,8 +202,7 @@ class Daemon:
                 self.serap_peristiwa(sekarang)
                 self.registry.bersihkan(sekarang)
                 if self.pastikan_tersambung(sekarang):
-                    lagu = self.musik.sekarang(sekarang) if self.musik else None
-                    self.terbitkan(self.registry.rakit(sekarang, lagu), sekarang)
+                    self.terbitkan(self.registry.rakit(sekarang, self.lagu_kini(sekarang)), sekarang)
                 time.sleep(DENYUT)
         finally:
             if self.klien.tersambung:
@@ -230,6 +251,10 @@ def main(argv=None) -> int:
         print("mode privasi :", cfg["mode"])
         print("musik        :", "nyala" if cfg["musik"] else "mati",
               ("(abaikan: " + ", ".join(cfg["abaikan_pemutar"]) + ")") if cfg["abaikan_pemutar"] else "")
+        singgahan = cc_sampul.jalur_singgahan()
+        print("sampul       :", "nyala" if cfg["sampul"] else "mati",
+              "(kartu kerja ikut)" if cfg["sampul_saat_kerja"] else "(kartu musik saja)",
+              "|", singgahan if singgahan.exists() else f"{singgahan} (belum ada)")
         print("soket Discord:", ", ".join(cari_soket()) or "(tidak ketemu -- Discord belum jalan?)")
         spool = dir_spool()
         print("spool        :", spool, "(aktif)" if spool.is_dir() else "(daemon mati)")

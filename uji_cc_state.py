@@ -332,5 +332,92 @@ class UjiPrivasi(unittest.TestCase):
         self.assertIsNone(cs.Registry(kartu_kosong=False).rakit(10.0))
 
 
+class UjiSampulDiKartuMusik(unittest.TestCase):
+    """Sampul album menempel di kartu musik lewat assets.large_image."""
+
+    LAGU = {"judul": "august", "artis": "Taylor Swift", "album": "folklore",
+            "pemutar": "brave", "sampul": "https://cover/x.jpg"}
+
+    def test_sampul_jadi_large_image(self):
+        hasil = cs.Registry().rakit(10.0, self.LAGU)
+        self.assertEqual(hasil["assets"]["large_image"], "https://cover/x.jpg")
+
+    def test_tanpa_sampul_tidak_ada_assets_sama_sekali(self):
+        # Kunci kosong bikin activity ditolak diam-diam; lebih baik tidak dikirim.
+        hasil = cs.Registry().rakit(10.0, dict(self.LAGU, sampul=""))
+        self.assertNotIn("assets", hasil)
+
+    def test_mode_minimal_tidak_dapat_sampul(self):
+        # Sampul album sama membocorkannya dengan judul lagu.
+        hasil = cs.Registry(mode="minimal").rakit(10.0, self.LAGU)
+        self.assertNotIn("assets", hasil)
+
+    def test_large_text_menyebut_album(self):
+        self.assertEqual(cs.Registry().rakit(10.0, self.LAGU)["assets"]["large_text"], "folklore")
+
+    def test_tanpa_album_large_text_jatuh_ke_judul(self):
+        hasil = cs.Registry().rakit(10.0, dict(self.LAGU, album=""))
+        self.assertEqual(hasil["assets"]["large_text"], "august")
+
+    def test_large_text_dipotong_sesuai_batas_discord(self):
+        hasil = cs.Registry().rakit(10.0, dict(self.LAGU, album="x" * 400))
+        self.assertLessEqual(len(hasil["assets"]["large_text"]), cs.BATAS_FIELD)
+
+
+class UjiSampulDiKartuKerja(unittest.TestCase):
+    """Sampul juga menempel di kartu kerja, bukan cuma di kartu musik.
+
+    Slot gambar itu yang biasanya diisi ikon aplikasi, jadi selama ada lagu
+    yang diputar ikon Claude Code memang tergantikan sampul album. Namanya
+    tetap tampil di baris teratas presence, jadi kartunya tidak jadi anonim.
+    """
+
+    LAGU = {"judul": "august", "artis": "Taylor Swift", "album": "folklore",
+            "pemutar": "brave", "sampul": "https://cover/x.jpg"}
+
+    def _sibuk(self, peristiwa="PreToolUse", **kw):
+        r = cs.Registry(**kw)
+        r.terapkan(ev("a", peristiwa, tool_name="Bash"), 10.0)
+        return r
+
+    def test_sampul_nempel_walau_lagi_ngoding(self):
+        hasil = self._sibuk().rakit(10.0, self.LAGU)
+        self.assertEqual(hasil["type"], cs.TIPE_KERJA, "tetap kartu kerja, bukan kartu musik")
+        self.assertEqual(hasil["state"], "Ngoprek terminal")
+        self.assertEqual(hasil["assets"]["large_image"], "https://cover/x.jpg")
+
+    def test_hover_menyebut_lagunya_bukan_albumnya(self):
+        # Di kartu kerja judul lagunya tidak tampil di mana pun, jadi teks
+        # gantungnya harus menyebut lagu -- beda dengan kartu musik yang
+        # sudah memuatnya di baris atas.
+        hasil = self._sibuk().rakit(10.0, self.LAGU)
+        self.assertEqual(hasil["assets"]["large_text"], "\u266a Taylor Swift \u2014 august")
+
+    def test_kartu_berpikir_juga_kebagian(self):
+        hasil = self._sibuk("UserPromptSubmit").rakit(10.0, self.LAGU)
+        self.assertIn("assets", hasil)
+
+    def test_bisa_dimatikan_tanpa_mematikan_kartu_musik(self):
+        # Yang mau ikon Claude Code tetap terlihat saat ngoding.
+        r = self._sibuk(sampul_saat_kerja=False)
+        self.assertNotIn("assets", r.rakit(10.0, self.LAGU))
+        polos = cs.Registry(sampul_saat_kerja=False)
+        self.assertIn("assets", polos.rakit(10.0, self.LAGU), "kartu musik tidak ikut mati")
+
+    def test_mode_minimal_tidak_bocor_lewat_gambar(self):
+        self.assertNotIn("assets", self._sibuk(mode="minimal").rakit(10.0, self.LAGU))
+
+    def test_tanpa_lagu_tidak_ada_assets(self):
+        self.assertNotIn("assets", self._sibuk().rakit(10.0))
+
+    def test_lagu_tanpa_sampul_tidak_ada_assets(self):
+        # Kunci kosong bikin activity ditolak diam-diam.
+        self.assertNotIn("assets", self._sibuk().rakit(10.0, dict(self.LAGU, sampul="")))
+
+    def test_timer_tidak_hilang_gara_gara_sampul(self):
+        hasil = self._sibuk().rakit(10.0, self.LAGU)
+        self.assertIn("timestamps", hasil)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -84,6 +84,45 @@ Kalau itu tidak diinginkan:
 Atau tutup pemutar tertentu saja lewat `abaikan_pemutar` di konfig, mis.
 `["brave", "firefox"]` — Spotify tetap terbaca, browser tidak.
 
+### Sampul album
+
+Sampul album jadi gambar besar presence — **di kartu musik maupun saat lagi
+ngoding**. Slot itu yang biasanya diisi ikon aplikasi, jadi selama ada lagu
+yang diputar ikon Claude Code memang tergantikan sampulnya; nama aplikasinya
+tetap tertulis di baris teratas presence. Di kartu kerja judul lagunya cuma
+muncul saat gambarnya disentuh kursor — dua baris teksnya sudah kepakai nama
+proyek dan kegiatan. Matikan lewat `sampul_saat_kerja: false` kalau ikon
+Claude Code lebih penting.
+
+Discord menerima URL
+`https://` mentah di `assets.large_image` — klien Discord sendiri yang
+menandatanganinya ke media proxy miliknya — jadi tidak ada berkas yang perlu
+diunggah ke mana pun, dan tidak ada token akun yang dibutuhkan.
+
+Sumber sampulnya dua, dicoba berurutan:
+
+1. **`mpris:artUrl` dari pemutarnya**, kalau isinya sudah URL `http(s)`.
+   Spotify desktop dan mpd begitu. Nol permintaan keluar.
+2. **iTunes Search API**, kalau tidak. Pemutar berbasis browser menulis
+   sampulnya ke berkas sementara di `/tmp`, dan berkas lokal tidak berarti
+   apa-apa buat Discord. Tanpa akun, tanpa kunci API. Dicoba dua kali:
+   artis + album dulu, lalu artis + judul lagu. Jatuhan itu bukan hiasan —
+   `entity=album` sering nihil walau albumnya jelas ada (mis. *a beautiful
+   blur (deluxe)*), sementara pencarian per lagu menemukannya dan tetap
+   membalas sampul album yang sama.
+
+Hasilnya disinggahi di `~/.cache/cc-presence/sampul.json` (lewat
+`CacheDirectory=` di berkas unit — sandbox service-nya bikin `~/.cache`
+read-only, dan tanpa baris itu singgahannya gagal ditulis diam-diam), termasuk hasil
+"tidak ketemu" — satu lagu cuma ditanyakan sekali, sesudah itu dibaca dari
+disk. Galat jaringan sengaja **tidak** disinggahi, supaya sampulnya muncul
+sendiri begitu internetnya pulih — tapi lagu yang barusan gagal juga tidak
+dicoba lagi selama satu menit. Tenggat urllib berlaku per operasi soket, bukan
+per permintaan, jadi tanpa rem itu satu API yang macet bisa menahan denyut
+daemon berulang-ulang. Kalau gagal, kartunya tetap tampil, cuma tanpa gambar.
+
+Matikan lewat `sampul: false` di konfig.
+
 ### Kata di pojok atas
 
 Baris teratas presence adalah `<jenis> <nama aplikasi>`, dan dua-duanya bisa
@@ -117,11 +156,18 @@ Bahkan di `detail`, perintah Bash dipotong ke **kata pertama saja** — jadi
 `psql -U admin -W hunter2 -h db.internal` tampil sebagai `psql`.
 
 Mode `minimal` juga menutup judul lagu, bukan cuma nama proyek — judul lagu
-sama personalnya.
+sama personalnya. Sampul album ikut ditutup di mode itu — di kedua kartu:
+gambar sampul yang kebaca orang membocorkan lagunya persis seperti judulnya.
 
 **Dua sumber data, tidak ada yang lain:** muatan hook Claude Code (`cwd`,
 nama alat, id sesi) dan MPRIS di D-Bus sesi. Judul jendela, isi berkas,
 ketikan, dan papan klip tidak pernah disentuh.
+
+**Satu permintaan keluar,** dan cuma satu jenis: pencarian sampul ke iTunes
+Search API. Yang dikirim artis + album (lalu judul lagu) — jadi Apple bisa tahu apa
+yang sedang diputar, walau tidak tahu siapa yang memutarnya. Sekali per lagu
+baru; sisanya dari singgahan. Mode `minimal` tidak pernah mengirimnya sama
+sekali, dan `sampul: false` mematikannya di semua mode.
 
 Proyek yang namanya tidak boleh tampil sama sekali didaftarkan di
 `proyek_privat`; namanya diganti "proyek privat".
@@ -170,6 +216,8 @@ Konfigurasi: `~/.config/cc-presence/konfig.json`
 | `ttl_sesi` | `900` | sesi sediam ini dianggap mati, detik |
 | `tampilkan_timer` | `true` | tampilkan lama sesi |
 | `musik` | `true` | tampilkan lagu saat tidak ada yang dikerjakan |
+| `sampul` | `true` | cari sampul album lagu yang sedang diputar |
+| `sampul_saat_kerja` | `true` | pasang sampulnya juga di kartu kerja, bukan cuma saat nganggur |
 | `kartu_kosong` | `true` | tetap tampilkan presence saat tidak ada sesi & tidak ada lagu |
 | `abaikan_pemutar` | `[]` | awalan nama pemutar yang tidak boleh dibaca |
 | `label` | `{}` | timpaan teks kegiatan, mis. `{"Bash": "Ngetik perintah"}` |
@@ -201,13 +249,14 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 ## Uji
 
 ```bash
-python3 uji_semua.py            # 146 uji, cepat (~0,01 dtk)
+python3 uji_semua.py            # 206 uji, cepat (~0,02 dtk)
 python3 probe/pulih_koneksi.py  # ~40 dtk, di luar suite
 ```
 
-146 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
-palsu yang bicara protokol yang sama, dan bagian MPRIS-nya lewat jawaban
-`busctl` palsu.
+206 uji, tanpa Discord yang menyala dan tanpa menyentuh jaringan — bagian
+IPC-nya diuji lewat server soket palsu yang bicara protokol yang sama, bagian
+MPRIS-nya lewat jawaban `busctl` palsu, dan pencarian sampulnya lewat pencari
+yang disuntik.
 
 ### Mengubah kata-katanya
 

@@ -14,4 +14,8 @@ sys.path.insert(0, sys.argv[1])
 import cc_pasang
 print("  " + cc_pasang.copot()[1])
 PY
+# Singgahan sampul album murni turunan -- beda dengan konfig, tidak ada
+# yang hilang kalau dibuang.
+rm -rf "${XDG_CACHE_HOME:-$HOME/.cache}/cc-presence"
+
 echo "Dicopot. Konfig di ~/.config/cc-presence/ sengaja dibiarkan."

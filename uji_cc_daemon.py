@@ -225,5 +225,57 @@ class UjiDaurPenuh(DasarDaemon):
                          "harusnya jatuh ke kartu kosong, bukan kartu sesi")
 
 
+class PencariPalsu:
+    def __init__(self, hasil="https://cover/x.jpg"):
+        self.hasil = hasil
+        self.diminta = []
+
+    def untuk(self, lagu):
+        self.diminta.append(lagu.get("judul"))
+        return self.hasil
+
+
+class UjiSampul(unittest.TestCase):
+    """Sampul dicari di daemon, bukan di Registry -- Registry tetap tanpa jaringan."""
+
+    LAGU = {"judul": "august", "artis": "Taylor Swift", "album": "folklore",
+            "pemutar": "brave", "sampul_mentah": "file:///tmp/x.png"}
+
+    def _daemon(self, **timpa):
+        cfg = dict(cc_konfig.BAWAAN, client_id="123456")
+        cfg.update(timpa)
+        return cc_daemon.Daemon(cfg)
+
+    def test_sampul_dilekatkan_ke_lagu(self):
+        d = self._daemon()
+        d.musik = type("M", (), {"sekarang": lambda _s, _w: dict(UjiSampul.LAGU)})()
+        d.sampul = PencariPalsu()
+        self.assertEqual(d.lagu_kini(10.0)["sampul"], "https://cover/x.jpg")
+
+    def test_sampul_dimatikan_tidak_menyentuh_pencari(self):
+        d = self._daemon(sampul=False)
+        self.assertIsNone(d.sampul)
+
+    def test_mode_minimal_tidak_pernah_mencari_sampul(self):
+        # Mode minimal menjanjikan judul lagu tidak ke mana-mana -- termasuk
+        # tidak ke API pencarian sampul.
+        self.assertIsNone(self._daemon(mode="minimal").sampul)
+
+    def test_musik_dimatikan_tidak_perlu_pencari(self):
+        self.assertIsNone(self._daemon(musik=False).sampul)
+
+    def test_saklar_sampul_saat_kerja_diteruskan_ke_registry(self):
+        # Gampang lupa: menambah kunci konfig tanpa menyambungkannya bikin
+        # saklarnya diam saja tanpa galat apa pun.
+        self.assertIs(self._daemon(sampul_saat_kerja=False).registry.sampul_saat_kerja, False)
+
+    def test_tanpa_lagu_pencari_tidak_dipanggil(self):
+        d = self._daemon()
+        d.musik = type("M", (), {"sekarang": lambda _s, _w: None})()
+        d.sampul = PencariPalsu()
+        self.assertIsNone(d.lagu_kini(10.0))
+        self.assertEqual(d.sampul.diminta, [])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -96,6 +96,10 @@ def lagu_sekarang(abaikan=()) -> dict | None:
         return {
             "judul": judul,
             "artis": _teks(meta.get("xesam:artist")),
+            "album": _teks(meta.get("xesam:album")),
+            # Pemutar berbasis browser mengisi ini dengan berkas sementara di
+            # /tmp; yang lain menyodorkan URL yang langsung bisa dipakai.
+            "sampul_mentah": _teks(meta.get("mpris:artUrl")),
             "pemutar": bus[len(AWALAN):].split(".")[0],
         }
     return None

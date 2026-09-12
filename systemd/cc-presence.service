@@ -18,6 +18,10 @@ PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=read-only
 ReadWritePaths=%t
+# Satu-satunya tempat tulis di luar %t: singgahan sampul album. Tanpa baris
+# ini ~/.cache ikut read-only, dan cc_sampul menelan galat tulisnya diam-diam
+# -- jadi iTunes ditanya ulang tiap lagu, tiap kali daemon dinyalakan.
+CacheDirectory=cc-presence
 
 [Install]
 WantedBy=default.target

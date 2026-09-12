@@ -92,5 +92,19 @@ class UjiKonfig(unittest.TestCase):
         self.assertEqual(lagi["proyek_privat"], ["Skripsi"])
 
 
+class UjiKunciSampul(unittest.TestCase):
+    def test_sampul_bawaannya_nyala(self):
+        self.assertIs(ck.BAWAAN["sampul"], True)
+
+    def test_sampul_saat_kerja_bawaannya_nyala(self):
+        self.assertIs(ck.BAWAAN["sampul_saat_kerja"], True)
+
+    def test_sampul_saat_kerja_terbaca_dari_berkas(self):
+        with tempfile.TemporaryDirectory() as d:
+            jalur = Path(d) / "konfig.json"
+            jalur.write_text(json.dumps({"sampul_saat_kerja": False}), encoding="utf-8")
+            self.assertIs(ck.muat(jalur)["sampul_saat_kerja"], False)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

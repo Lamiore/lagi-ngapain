@@ -108,6 +108,7 @@ class Registry:
     tipe_kerja: int = TIPE_KERJA
     tipe_musik: int = TIPE_MUSIK
     kartu_kosong: bool = True
+    sampul_saat_kerja: bool = True
     sesi: dict = field(default_factory=dict)
     _hitung: int = 0
 
@@ -173,20 +174,46 @@ class Registry:
             return "proyek privat"
         return nama
 
+    def _aset_sampul(self, musik, gantung: str = "") -> dict:
+        """Blok ``assets`` berisi sampul album, atau {} kalau tidak ada.
+
+        Sampulnya sudah berupa URL siap pakai -- pencariannya di daemon,
+        supaya modul ini tetap bisa diuji tanpa jaringan. Kunci kosong
+        membuat activity ditolak diam-diam oleh Discord, jadi blok ini cuma
+        dipasang kalau gambarnya memang ada.
+
+        ``gantung`` adalah teks yang muncul saat gambarnya disentuh kursor;
+        kalau tidak diisi, dipakai nama albumnya.
+        """
+        if not musik or self.mode == "minimal":
+            # Gambar sampul membocorkan lagunya persis seperti judulnya.
+            return {}
+        sampul = str(musik.get("sampul") or "").strip()
+        if not sampul:
+            return {}
+        aset = {"large_image": sampul}
+        teks = gantung or musik.get("album") or musik.get("judul") or ""
+        if teks:
+            aset["large_text"] = _potong(str(teks))
+        return aset
+
     def _kartu_musik(self, musik: dict, peta: dict) -> dict:
         """Presence versi 'lagi dengerin', dipakai saat tidak ada yang dikerjakan."""
         if self.mode == "minimal":
             # Judul lagu sama personalnya dengan nama proyek; mode minimal
             # menjanjikan tidak membocorkan keduanya.
             return {"type": self.tipe_musik, "details": _potong(peta["dengerin"])}
-        judul = musik.get("judul", "")
-        artis = musik.get("artis", "")
-        teks = f"{artis} \u2014 {judul}" if artis else judul
-        return {
+        kartu = {
             "type": self.tipe_musik,
-            "details": _potong(f"\u266a {teks}"),
+            "details": _potong(f"\u266a {_teks_lagu(musik)}"),
             "state": _potong(peta["dengerin"]),
         }
+        # Di kartu ini lagunya sudah tertulis di baris atas, jadi teks
+        # gantungnya diisi albumnya -- keterangan yang belum kelihatan.
+        aset = self._aset_sampul(musik)
+        if aset:
+            kartu["assets"] = aset
+        return kartu
 
     def _kartu_kosong(self, peta: dict) -> dict:
         """Presence saat tidak ada sesi sama sekali dan tidak ada yang diputar.
@@ -241,11 +268,26 @@ class Registry:
             "details": _potong(details),
             "state": _potong(state),
         }
+        # Slot gambar kartu kerja biasanya diisi ikon aplikasi. Selama ada
+        # lagu yang diputar, sampulnya yang dipasang di situ -- lagunya tidak
+        # muat di dua baris teks yang sudah kepakai proyek dan kegiatan.
+        if musik and self.sampul_saat_kerja:
+            aset = self._aset_sampul(musik, f"\u266a {_teks_lagu(musik)}")
+            if aset:
+                activity["assets"] = aset
+
         if self.tampilkan_timer:
             # Timer dihitung dari sesi tertua yang masih hidup supaya angkanya
             # tidak melompat mundur saat sesi lain ikut bergabung.
             activity["timestamps"] = {"start": int(min(s.mulai for s in hidup) * 1000)}
         return activity
+
+
+def _teks_lagu(musik: dict) -> str:
+    """``Artis \u2014 Judul``, atau judulnya saja kalau artisnya kosong."""
+    judul = str(musik.get("judul") or "")
+    artis = str(musik.get("artis") or "")
+    return f"{artis} \u2014 {judul}" if artis else judul
 
 
 def _rincian(alat: str, masukan) -> str:

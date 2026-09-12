@@ -45,6 +45,15 @@ BAWAAN: dict = {
     "tipe_musik": 2,
     # Tampilkan lagu yang sedang diputar saat tidak ada yang dikerjakan.
     "musik": True,
+    # Cari sampul album lagu yang sedang diputar. Untuk pemutar berbasis
+    # browser sampulnya tidak ikut di metadata, jadi artis dan judulnya
+    # dikirim ke iTunes Search API (tanpa akun, tanpa kunci). Matikan kalau
+    # tidak mau lagunya diketahui pihak lain.
+    "sampul": True,
+    # Pasang sampulnya juga di kartu kerja, bukan cuma saat nganggur. Slot
+    # gambar itu yang biasanya diisi ikon aplikasi, jadi mematikan ini
+    # berarti ikon Claude Code tetap terlihat selagi ngoding.
+    "sampul_saat_kerja": True,
     # Awalan nama pemutar yang tidak boleh dibaca sama sekali, mis.
     # ["brave", "firefox"] untuk menutup judul video dari browser.
     "abaikan_pemutar": [],
