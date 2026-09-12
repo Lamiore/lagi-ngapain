@@ -59,6 +59,7 @@ class Daemon:
             label=cfg["label"],
             tipe_kerja=cfg["tipe_kerja"],
             tipe_musik=cfg["tipe_musik"],
+            kartu_kosong=cfg["kartu_kosong"],
         )
         self.klien = KlienDiscord(cfg["client_id"])
         # Dibaca berkala, bukan tiap denyut: satu pembacaan memanggil
@@ -151,8 +152,10 @@ class Daemon:
             _log("presence dikosongkan")
         else:
             from cc_state import TIPE_VALID
-            _log("presence:", TIPE_VALID.get(activity.get("type"), "?"), "|",
-                 activity.get("details"), "|", activity.get("state"))
+            ruas = [TIPE_VALID.get(activity.get("type"), "?"), activity.get("details")]
+            if activity.get("state"):  # kartu kosong tidak punya baris kedua
+                ruas.append(activity["state"])
+            _log("presence:", " | ".join(ruas))
 
     # -- daur hidup ---------------------------------------------------------
 

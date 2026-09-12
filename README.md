@@ -49,7 +49,19 @@ Ngoprek terminal                  Lagi dengerin
    (lagi ngoding)                    (nganggur)
 ```
 
-Keduanya sengaja tidak pernah tampil bersamaan: Discord cuma punya dua baris
+Kalau tidak ada sesi sama sekali **dan** tidak ada yang diputar — misalnya PC
+baru dinyalakan — presence tetap nempel sebagai kartu kosong:
+
+```
+Playing Terminal
+💻 Nganggur
+```
+
+Urutan prioritasnya: sesi yang sedang bekerja → lagu → kartu kosong. Matikan
+kartu kosong lewat `kartu_kosong: false` kalau lebih suka profil bersih saat
+tidak ngapa-ngapain.
+
+Kerjaan dan lagu sengaja tidak pernah tampil bersamaan: Discord cuma punya dua baris
 teks, jadi menggabungkannya membuat dua-duanya terpotong.
 
 Sumbernya **MPRIS** di D-Bus sesi lewat `busctl` — bukan pustaka D-Bus, karena
@@ -158,6 +170,7 @@ Konfigurasi: `~/.config/cc-presence/konfig.json`
 | `ttl_sesi` | `900` | sesi sediam ini dianggap mati, detik |
 | `tampilkan_timer` | `true` | tampilkan lama sesi |
 | `musik` | `true` | tampilkan lagu saat tidak ada yang dikerjakan |
+| `kartu_kosong` | `true` | tetap tampilkan presence saat tidak ada sesi & tidak ada lagu |
 | `abaikan_pemutar` | `[]` | awalan nama pemutar yang tidak boleh dibaca |
 | `label` | `{}` | timpaan teks kegiatan, mis. `{"Bash": "Ngetik perintah"}` |
 | `tipe_kerja` | `0` | kata pojok atas saat ngoding (lihat di bawah) |
@@ -184,7 +197,7 @@ menerbitkan ulang, karena presence hilang saat koneksi putus.
 python3 uji_semua.py
 ```
 
-139 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
+146 uji, tanpa Discord yang menyala — bagian IPC-nya diuji lewat server soket
 palsu yang bicara protokol yang sama, dan bagian MPRIS-nya lewat jawaban
 `busctl` palsu.
 

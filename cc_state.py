@@ -107,6 +107,7 @@ class Registry:
     label: dict = field(default_factory=dict)
     tipe_kerja: int = TIPE_KERJA
     tipe_musik: int = TIPE_MUSIK
+    kartu_kosong: bool = True
     sesi: dict = field(default_factory=dict)
     _hitung: int = 0
 
@@ -187,6 +188,15 @@ class Registry:
             "state": _potong(peta["dengerin"]),
         }
 
+    def _kartu_kosong(self, peta: dict) -> dict:
+        """Presence saat tidak ada sesi sama sekali dan tidak ada yang diputar.
+
+        Dipakai supaya presence tetap nempel selama daemon hidup, bukan
+        menghilang sama sekali. Katanya ikut label ``idle`` -- artinya sama,
+        jadi menggantinya cukup sekali.
+        """
+        return {"type": self.tipe_kerja, "details": _potong(f"\U0001f4bb {peta['idle']}")}
+
     def rakit(self, sekarang: float, musik: dict | None = None) -> dict | None:
         """Rakit payload activity Discord. ``None`` berarti kosongkan presence.
 
@@ -196,10 +206,11 @@ class Registry:
         """
         hidup = list(self.sesi.values())
         sibuk = any(s.keadaan in (BEKERJA, BERPIKIR) for s in hidup)
+        peta_awal = {**LABEL_BAWAAN, **self.label}
         if musik and not sibuk:
-            return self._kartu_musik(musik, {**LABEL_BAWAAN, **self.label})
+            return self._kartu_musik(musik, peta_awal)
         if not hidup:
-            return None
+            return self._kartu_kosong(peta_awal) if self.kartu_kosong else None
 
         utama = max(hidup, key=lambda s: s.urutan)
         jumlah = len(hidup)

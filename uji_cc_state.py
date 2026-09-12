@@ -43,7 +43,7 @@ class UjiPeralihan(unittest.TestCase):
     def test_sessionend_membuang_sesi(self):
         self.r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
         self.r.terapkan(ev("a", "SessionEnd"), 11.0)
-        self.assertIsNone(self.r.rakit(11.0), "presence harus dikosongkan")
+        self.assertEqual(self.r.sesi, {})
 
     def test_peristiwa_tak_dikenal_diabaikan(self):
         self.assertFalse(self.r.terapkan(ev("a", "PostToolUse"), 10.0))
@@ -94,7 +94,7 @@ class UjiBanyakSesi(unittest.TestCase):
         self.r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
         self.assertFalse(self.r.bersihkan(500.0))
         self.assertTrue(self.r.bersihkan(10.0 + self.r.ttl + 1))
-        self.assertIsNone(self.r.rakit(10.0 + self.r.ttl + 1))
+        self.assertEqual(self.r.sesi, {})
 
     def test_ttl_hanya_membuang_yang_basi(self):
         self.r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
@@ -162,8 +162,9 @@ class UjiKartuMusik(unittest.TestCase):
         self.assertIn("Too Soon", hasil["details"])
         self.assertEqual(hasil["state"], cs.LABEL_BAWAAN["dengerin"])
 
-    def test_tanpa_sesi_tanpa_lagu_presence_dikosongkan(self):
-        self.assertIsNone(self.r.rakit(10.0, None))
+    def test_tanpa_sesi_tanpa_lagu_jatuh_ke_kartu_kosong(self):
+        self.assertEqual(self.r.rakit(10.0, None),
+                         {"type": cs.TIPE_KERJA, "details": "\U0001f4bb " + cs.LABEL_BAWAAN["idle"]})
 
     def test_saat_bekerja_kerjaan_menang_atas_lagu(self):
         # Discord cuma punya dua baris; menampilkan keduanya memotong keduanya.
@@ -237,6 +238,39 @@ class UjiTipeActivity(unittest.TestCase):
         self.assertEqual(cs.Registry(tipe_musik=4).tipe_musik, cs.TIPE_MUSIK)
 
 
+class UjiKartuKosong(unittest.TestCase):
+    """Presence saat belum ada sesi sama sekali -- mis. PC baru dinyalakan."""
+
+    LAGU = {"judul": "Too Soon", "artis": "NIKI", "pemutar": "brave"}
+
+    def test_tampil_walau_belum_pernah_ada_sesi(self):
+        hasil = cs.Registry().rakit(10.0)
+        self.assertIn(cs.LABEL_BAWAAN["idle"], hasil["details"])
+
+    def test_tidak_punya_baris_kedua_maupun_timer(self):
+        hasil = cs.Registry().rakit(10.0)
+        self.assertNotIn("state", hasil)
+        self.assertNotIn("timestamps", hasil)
+
+    def test_musik_menang_atas_kartu_kosong(self):
+        self.assertIn("Too Soon", cs.Registry().rakit(10.0, self.LAGU)["details"])
+
+    def test_sesi_menang_atas_kartu_kosong(self):
+        r = cs.Registry()
+        r.terapkan(ev("a", "Stop"), 10.0)
+        self.assertIn("aio-lcd", r.rakit(10.0)["details"])
+
+    def test_ikut_label_idle_supaya_sekali_ganti(self):
+        r = cs.Registry(label={"idle": "Rebahan"})
+        self.assertIn("Rebahan", r.rakit(10.0)["details"])
+
+    def test_ikut_tipe_kerja(self):
+        self.assertEqual(cs.Registry(tipe_kerja=3).rakit(10.0)["type"], 3)
+
+    def test_bisa_dimatikan(self):
+        self.assertIsNone(cs.Registry(kartu_kosong=False).rakit(10.0))
+
+
 class UjiPrivasi(unittest.TestCase):
     def test_normal_hanya_nama_folder_bukan_jalur(self):
         r = cs.Registry(mode="normal")
@@ -294,8 +328,8 @@ class UjiPrivasi(unittest.TestCase):
         r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
         self.assertNotIn("timestamps", r.rakit(10.0))
 
-    def test_registry_kosong_mengosongkan_presence(self):
-        self.assertIsNone(cs.Registry().rakit(10.0))
+    def test_registry_kosong_mengosongkan_presence_kalau_kartu_kosong_dimatikan(self):
+        self.assertIsNone(cs.Registry(kartu_kosong=False).rakit(10.0))
 
 
 if __name__ == "__main__":

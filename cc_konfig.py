@@ -39,6 +39,8 @@ BAWAAN: dict = {
     "tampilkan_timer": True,
     # Kata di pojok atas presence: 0 Playing, 2 Listening to, 3 Watching,
     # 5 Competing in. Nilai lain ditolak Discord, jadi disaring di sini.
+    # Tetap tampilkan presence walau tidak ada sesi dan tidak ada yang diputar.
+    "kartu_kosong": True,
     "tipe_kerja": 0,
     "tipe_musik": 2,
     # Tampilkan lagu yang sedang diputar saat tidak ada yang dikerjakan.

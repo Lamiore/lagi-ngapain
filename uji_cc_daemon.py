@@ -221,7 +221,8 @@ class UjiDaurPenuh(DasarDaemon):
         jauh = 100.0 + cc_konfig.BAWAAN["ttl_sesi"] + 10
         self.d.registry.bersihkan(jauh)
         self.d.terbitkan(self.d.registry.rakit(jauh), jauh)
-        self.assertIsNone(self.d.klien.terbit[-1])
+        self.assertNotIn("state", self.d.klien.terbit[-1],
+                         "harusnya jatuh ke kartu kosong, bukan kartu sesi")
 
 
 if __name__ == "__main__":
