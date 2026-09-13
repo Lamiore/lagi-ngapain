@@ -17,6 +17,11 @@ Menjalankan perintah · 2 sesi aktif
 
 Tanpa dependensi. Cuma Python 3 pustaka baku dan bash.
 
+[![uji](https://github.com/Lamiore/lagi-ngapain/actions/workflows/uji.yml/badge.svg)](https://github.com/Lamiore/lagi-ngapain/actions/workflows/uji.yml)
+[![lisensi](https://img.shields.io/badge/lisensi-GPL--3.0-blue)](LICENSE)
+![Python 3](https://img.shields.io/badge/Python%203-tanpa%20dependensi-3776AB?logo=python&logoColor=white)
+![platform](https://img.shields.io/badge/platform-Linux-FCC624?logo=linux&logoColor=black)
+
 ---
 
 ## Cara kerja
@@ -267,6 +272,9 @@ python3 uji/probe/pulih_koneksi.py  # ~40 dtk, di luar suite
 IPC-nya diuji lewat server soket palsu yang bicara protokol yang sama, bagian
 MPRIS-nya lewat jawaban `busctl` palsu, dan pencarian sampulnya lewat pencari
 yang disuntik.
+
+Suite yang sama jalan otomatis di GitHub Actions (`.github/workflows/uji.yml`)
+tiap push dan pull request.
 
 ### Mengubah kata-katanya
 
