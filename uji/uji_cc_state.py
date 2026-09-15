@@ -86,7 +86,7 @@ class UjiBanyakSesi(unittest.TestCase):
         self.r.terapkan(ev("a", "PreToolUse", tool_name="Grep"), 12.0)
         self.assertIn("aio-lcd", self.r.rakit(12.0)["details"])
 
-    def test_timer_dari_sesi_tertua_supaya_tidak_melompat_mundur(self):
+    def test_mode_sesi_timer_dari_sesi_tertua_supaya_tidak_melompat_mundur(self):
         self.r.terapkan(ev("a", "UserPromptSubmit"), 100.0)
         awal = self.r.rakit(100.0)["timestamps"]["start"]
         self.r.terapkan(ev("b", "UserPromptSubmit", cwd="/tmp/lain"), 200.0)
@@ -251,7 +251,7 @@ class UjiKartuKosong(unittest.TestCase):
         hasil = cs.Registry().rakit(10.0)
         self.assertIn(cs.LABEL_BAWAAN["idle"], hasil["details"])
 
-    def test_tidak_punya_baris_kedua_maupun_timer(self):
+    def test_tidak_punya_baris_kedua_dan_di_mode_sesi_tanpa_timer(self):
         hasil = cs.Registry().rakit(10.0)
         self.assertNotIn("state", hasil)
         self.assertNotIn("timestamps", hasil)
@@ -421,6 +421,53 @@ class UjiSampulDiKartuKerja(unittest.TestCase):
     def test_timer_tidak_hilang_gara_gara_sampul(self):
         hasil = self._sibuk().rakit(10.0, self.LAGU)
         self.assertIn("timestamps", hasil)
+
+
+class UjiTimerNyalaPc(unittest.TestCase):
+    """Timer dipatok ke waktu PC nyala supaya tidak kereset tiap ganti kartu."""
+
+    NYALA = 1_789_478_631.0
+    LAGU = {"judul": "Too Soon", "artis": "NIKI", "pemutar": "brave"}
+
+    def setUp(self):
+        self.r = cs.Registry(mulai_tetap=self.NYALA)
+
+    def mulai(self, hasil):
+        return hasil["timestamps"]["start"]
+
+    def test_kartu_kosong_ikut_bertimer(self):
+        self.assertEqual(self.mulai(self.r.rakit(10.0)), int(self.NYALA * 1000))
+
+    def test_kartu_musik_ikut_bertimer(self):
+        self.assertEqual(self.mulai(self.r.rakit(10.0, self.LAGU)), int(self.NYALA * 1000))
+
+    def test_kartu_kerja_pakai_waktu_nyala_bukan_awal_sesi(self):
+        t = self.NYALA + 5000
+        self.r.terapkan(ev("a", "PreToolUse", tool_name="Bash"), t)
+        self.assertEqual(self.mulai(self.r.rakit(t)), int(self.NYALA * 1000))
+
+    def test_tidak_kereset_bolak_balik_nganggur_dengerin_dan_kerja(self):
+        t = self.NYALA + 3600
+        awal = self.mulai(self.r.rakit(t))  # belum ada sesi sama sekali
+        self.r.terapkan(ev("a", "UserPromptSubmit"), t + 1)
+        kerja = self.mulai(self.r.rakit(t + 1))
+        self.r.terapkan(ev("a", "Stop"), t + 2)
+        dengerin = self.mulai(self.r.rakit(t + 2, self.LAGU))
+        self.r.terapkan(ev("a", "SessionEnd"), t + 3)
+        # Sesi baru sesudah yang lama tutup -- dulu di sinilah timernya kereset.
+        self.r.terapkan(ev("b", "PreToolUse", tool_name="Read"), t + 4)
+        lagi = self.mulai(self.r.rakit(t + 4))
+        self.assertEqual({awal, kerja, dengerin, lagi}, {awal})
+
+    def test_timer_dimatikan_berlaku_di_semua_kartu(self):
+        r = cs.Registry(mulai_tetap=self.NYALA, tampilkan_timer=False)
+        self.assertNotIn("timestamps", r.rakit(10.0))
+        self.assertNotIn("timestamps", r.rakit(10.0, self.LAGU))
+        r.terapkan(ev("a", "UserPromptSubmit"), 10.0)
+        self.assertNotIn("timestamps", r.rakit(10.0))
+
+    def test_presence_dikosongkan_tetap_none(self):
+        self.assertIsNone(cs.Registry(mulai_tetap=self.NYALA, kartu_kosong=False).rakit(10.0))
 
 
 if __name__ == "__main__":

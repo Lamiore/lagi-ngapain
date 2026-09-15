@@ -104,6 +104,10 @@ class Registry:
     mode: str = "normal"
     proyek_privat: tuple = ()
     tampilkan_timer: bool = True
+    # Jam tetap (epoch detik) untuk timer semua kartu, mis. waktu PC nyala.
+    # 0 berarti timer dihitung dari sesi tertua dan cuma ada di kartu kerja.
+    # Dibaca pemanggil, bukan di sini -- modul ini tidak menyentuh jam sistem.
+    mulai_tetap: float = 0.0
     label: dict = field(default_factory=dict)
     tipe_kerja: int = TIPE_KERJA
     tipe_musik: int = TIPE_MUSIK
@@ -231,6 +235,15 @@ class Registry:
         berpikir -- Discord cuma punya dua baris teks, jadi menampilkan
         keduanya sekaligus membuat dua-duanya terpotong.
         """
+        activity = self._rakit_kartu(musik)
+        if activity is not None and self.tampilkan_timer and self.mulai_tetap:
+            # Satu jam yang sama di ketiga kartu: pindah dari nganggur ke
+            # kerja ke dengerin tidak lagi membuat timernya hilang atau
+            # mulai dari nol.
+            activity["timestamps"] = {"start": int(self.mulai_tetap * 1000)}
+        return activity
+
+    def _rakit_kartu(self, musik: dict | None) -> dict | None:
         hidup = list(self.sesi.values())
         sibuk = any(s.keadaan in (BEKERJA, BERPIKIR) for s in hidup)
         peta_awal = {**LABEL_BAWAAN, **self.label}
@@ -276,7 +289,7 @@ class Registry:
             if aset:
                 activity["assets"] = aset
 
-        if self.tampilkan_timer:
+        if self.tampilkan_timer and not self.mulai_tetap:
             # Timer dihitung dari sesi tertua yang masih hidup supaya angkanya
             # tidak melompat mundur saat sesi lain ikut bergabung.
             activity["timestamps"] = {"start": int(min(s.mulai for s in hidup) * 1000)}

@@ -228,7 +228,8 @@ Konfigurasi: `~/.config/lagi-ngapain/konfig.json`
 | `proyek_privat` | `[]` | nama folder yang disamarkan |
 | `jeda_publish` | `15` | jarak minimum antar penerbitan, detik |
 | `ttl_sesi` | `900` | sesi sediam ini dianggap mati, detik |
-| `tampilkan_timer` | `true` | tampilkan lama sesi |
+| `tampilkan_timer` | `true` | tampilkan timer di presence |
+| `sumber_timer` | `nyala_pc` | `nyala_pc`: sejak PC dinyalakan, sama di semua kartu; `sesi`: sejak sesi tertua, kartu kerja saja |
 | `musik` | `true` | tampilkan lagu saat tidak ada yang dikerjakan |
 | `sampul` | `true` | cari sampul album lagu yang sedang diputar |
 | `sampul_saat_kerja` | `true` | pasang sampulnya juga di kartu kerja, bukan cuma saat nganggur |

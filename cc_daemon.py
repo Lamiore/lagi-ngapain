@@ -45,6 +45,24 @@ def dir_spool() -> Path:
     return Path(dasar) / "lagi-ngapain" / "ev"
 
 
+def waktu_nyala_pc(jalur_stat: Path = Path("/proc/stat")) -> float:
+    """Kapan PC dinyalakan, dalam epoch detik.
+
+    ``btime`` di /proc/stat angka bulat yang tetap sepanjang boot, jadi
+    daemon yang dimuat ulang menerbitkan timer yang persis sama. Kalau
+    berkasnya tidak kebaca (sandbox bisa menyembunyikan /proc), dihitung
+    dari jam CLOCK_BOOTTIME -- yang ikut menghitung masa suspend, sama
+    seperti ``uptime``.
+    """
+    try:
+        for baris in jalur_stat.read_text(encoding="utf-8").splitlines():
+            if baris.startswith("btime "):
+                return float(int(baris.split()[1]))
+    except (OSError, ValueError, IndexError):
+        pass
+    return float(round(time.time() - time.clock_gettime(time.CLOCK_BOOTTIME)))
+
+
 def _log(*a) -> None:
     print(time.strftime("[%H:%M:%S]"), *a, flush=True)
 
@@ -58,6 +76,9 @@ class Daemon:
             mode=cfg["mode"],
             proyek_privat=cfg["proyek_privat"],
             tampilkan_timer=cfg["tampilkan_timer"],
+            # Dibaca sekali di sini, bukan tiap denyut: angka yang goyang
+            # sedikit saja bikin muatannya dianggap berubah dan diterbitkan ulang.
+            mulai_tetap=waktu_nyala_pc() if cfg["sumber_timer"] == "nyala_pc" else 0.0,
             label=cfg["label"],
             tipe_kerja=cfg["tipe_kerja"],
             tipe_musik=cfg["tipe_musik"],
@@ -257,6 +278,13 @@ def main(argv=None) -> int:
         print("sampul       :", "nyala" if cfg["sampul"] else "mati",
               "(kartu kerja ikut)" if cfg["sampul_saat_kerja"] else "(kartu musik saja)",
               "|", singgahan if singgahan.exists() else f"{singgahan} (belum ada)")
+        if not cfg["tampilkan_timer"]:
+            print("timer        : mati")
+        elif cfg["sumber_timer"] == "nyala_pc":
+            print("timer        : sejak PC nyala,",
+                  time.strftime("%Y-%m-%d %H:%M", time.localtime(waktu_nyala_pc())))
+        else:
+            print("timer        : sejak sesi Claude Code tertua (kartu kerja saja)")
         print("soket Discord:", ", ".join(cari_soket()) or "(tidak ketemu -- Discord belum jalan?)")
         spool = dir_spool()
         print("spool        :", spool, "(aktif)" if spool.is_dir() else "(daemon mati)")

@@ -19,6 +19,7 @@ import os
 from pathlib import Path
 
 MODE_VALID = ("minimal", "normal", "detail")
+SUMBER_TIMER_VALID = ("nyala_pc", "sesi")
 
 BAWAAN: dict = {
     # Application ID dari https://discord.com/developers/applications
@@ -37,6 +38,10 @@ BAWAAN: dict = {
     # tidak sempat jalan).
     "ttl_sesi": 900,
     "tampilkan_timer": True,
+    # Dari mana timer dihitung. "nyala_pc": sejak PC dinyalakan, sama di
+    # semua kartu dan tidak kereset saat daemon dimuat ulang. "sesi": sejak
+    # sesi Claude Code tertua, cuma di kartu kerja (perilaku lama).
+    "sumber_timer": "nyala_pc",
     # Kata di pojok atas presence: 0 Playing, 2 Listening to, 3 Watching,
     # 5 Competing in. Nilai lain ditolak Discord, jadi disaring di sini.
     # Tetap tampilkan presence walau tidak ada sesi dan tidak ada yang diputar.
@@ -81,6 +86,8 @@ def muat(jalur: Path | None = None) -> dict:
 
     if cfg["mode"] not in MODE_VALID:
         cfg["mode"] = BAWAAN["mode"]
+    if cfg["sumber_timer"] not in SUMBER_TIMER_VALID:
+        cfg["sumber_timer"] = BAWAAN["sumber_timer"]
     if not isinstance(cfg["proyek_privat"], list):
         cfg["proyek_privat"] = []
     from cc_state import TIPE_KERJA, TIPE_MUSIK, TIPE_VALID

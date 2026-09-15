@@ -9,6 +9,7 @@ import json
 import os
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -278,6 +279,32 @@ class UjiSampul(unittest.TestCase):
         d.sampul = PencariPalsu()
         self.assertIsNone(d.lagu_kini(10.0))
         self.assertEqual(d.sampul.diminta, [])
+
+
+class UjiWaktuNyalaPc(unittest.TestCase):
+    """Jam timer dibaca daemon sekali saat start; Registry cuma menerima angkanya."""
+
+    def test_dibaca_dari_btime(self):
+        with tempfile.TemporaryDirectory() as d:
+            stat = Path(d) / "stat"
+            stat.write_text("cpu  1 2 3 4\nintr 5\nbtime 1789478631\nprocesses 99\n", encoding="utf-8")
+            self.assertEqual(cc_daemon.waktu_nyala_pc(stat), 1789478631.0)
+
+    def test_tanpa_btime_jatuh_ke_jam_boottime(self):
+        # /proc/stat bisa disembunyikan sandbox systemd (ProcSubset=pid).
+        perkiraan = time.time() - time.clock_gettime(time.CLOCK_BOOTTIME)
+        self.assertAlmostEqual(cc_daemon.waktu_nyala_pc(Path("/tidak/ada/stat")), perkiraan, delta=2)
+
+    def _daemon(self, **timpa):
+        return cc_daemon.Daemon(dict(cc_konfig.BAWAAN, client_id="123456", **timpa))
+
+    def test_waktu_nyala_diteruskan_ke_registry(self):
+        # Gampang lupa: kunci konfig yang tidak disambungkan diam saja tanpa galat.
+        mulai = self._daemon(sumber_timer="nyala_pc").registry.mulai_tetap
+        self.assertAlmostEqual(mulai, cc_daemon.waktu_nyala_pc(), delta=2)
+
+    def test_sumber_sesi_tidak_mematok_timer(self):
+        self.assertEqual(self._daemon(sumber_timer="sesi").registry.mulai_tetap, 0.0)
 
 
 if __name__ == "__main__":

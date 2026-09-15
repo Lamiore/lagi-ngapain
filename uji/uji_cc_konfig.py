@@ -109,5 +109,22 @@ class UjiKunciSampul(unittest.TestCase):
             self.assertIs(ck.muat(jalur)["sampul_saat_kerja"], False)
 
 
+class UjiSumberTimer(unittest.TestCase):
+    def muat_dengan(self, isi):
+        with tempfile.TemporaryDirectory() as d:
+            jalur = Path(d) / "konfig.json"
+            jalur.write_text(json.dumps(isi), encoding="utf-8")
+            return ck.muat(jalur)
+
+    def test_bawaannya_waktu_nyala_pc(self):
+        self.assertEqual(ck.BAWAAN["sumber_timer"], "nyala_pc")
+
+    def test_sesi_terbaca_dari_berkas(self):
+        self.assertEqual(self.muat_dengan({"sumber_timer": "sesi"})["sumber_timer"], "sesi")
+
+    def test_nilai_ngawur_jatuh_ke_bawaan(self):
+        self.assertEqual(self.muat_dengan({"sumber_timer": "kapan-kapan"})["sumber_timer"], "nyala_pc")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
